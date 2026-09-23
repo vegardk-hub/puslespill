@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bak" cx="50%" cy="50%" r="60%">
+      <stop offset="0" stop-color="#231a4a"/>
+      <stop offset="1" stop-color="#07070e"/>
+    </radialGradient>
+    <linearGradient id="brikke" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9ff4ff"/>
+      <stop offset="1" stop-color="#ff8ae6"/>
+    </linearGradient>
+    <filter id="glod" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="16" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bak)"/>
+  <path filter="url(#glod)" fill="url(#brikke)" stroke="#22e0ff" stroke-width="5"
+        d="M132 120 h84 a30 30 0 0 1 40 -26 a30 30 0 0 1 40 26 h84 v84 a30 30 0 0 0 26 40 a30 30 0 0 0 -26 40 v84 h-84 a30 30 0 0 1 -40 26 a30 30 0 0 1 -40 -26 h-84 v-84 a30 30 0 0 0 -26 -40 a30 30 0 0 0 26 -40 Z"/>
+</svg>

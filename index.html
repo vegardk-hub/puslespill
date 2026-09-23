@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Puslespill</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07070e">
+<meta name="description" content="Puslespill med neonmotiv, laget for iPad.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Puslespill">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/ikon-180.png">
+<link rel="icon" href="./icons/ikon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<canvas id="brett"></canvas>
+
+<header id="panel">
+  <div class="rad rad-topp">
+    <h1>Puslespill</h1>
+    <button id="panel-veksle" class="ikonknapp" aria-label="Vis eller skjul panelet">▾</button>
+  </div>
+
+  <div class="panelinnhold">
+    <div class="rad">
+      <span class="etikett">Brikker</span>
+      <div class="chips">
+        <button data-forhandsvalg="12">12</button>
+        <button data-forhandsvalg="24">24</button>
+        <button data-forhandsvalg="50">50</button>
+        <button data-forhandsvalg="100">100</button>
+        <button data-forhandsvalg="150">150</button>
+        <button data-forhandsvalg="200">200</button>
+        <button data-forhandsvalg="300">300</button>
+        <button data-forhandsvalg="500">500</button>
+      </div>
+      <input id="eget-antall" type="number" min="4" max="500" step="1" inputmode="numeric"
+             aria-label="Eget antall brikker">
+    </div>
+
+    <div class="rad resultat">
+      <strong id="brikketall">—</strong>
+      <span id="alternativer"></span>
+    </div>
+
+    <div class="rad">
+      <span class="etikett">Kutt</span>
+      <select id="kuttstil" aria-label="Brikkeform">
+        <option value="klassisk">Klassisk</option>
+        <option value="bolget">Bølget</option>
+        <option value="kaotisk">Kaotisk</option>
+      </select>
+
+      <span class="etikett">Palett</span>
+      <select id="palett" aria-label="Fargepalett">
+        <option value="auto">Tilfeldig</option>
+      </select>
+    </div>
+
+    <div class="rad">
+      <span class="etikett">Spøkelse</span>
+      <input id="spokelse" type="range" min="0" max="60" value="15" aria-label="Styrke på spøkelsesbilde">
+      <button id="nytt" class="primar">Nytt motiv</button>
+      <button id="spre">Spre</button>
+    </div>
+
+    <p id="status" class="status">—</p>
+  </div>
+</header>
+
+<div id="laster" hidden>
+  <div class="spinner"></div>
+  <p id="laster-tekst">Tegner motiv …</p>
+</div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+/* Puslespill — neonmørkt grensesnitt, bygget for berøring på iPad. */
+
+:root {
+  --bg: #07070e;
+  --panel: rgba(14, 16, 30, 0.82);
+  --kant: rgba(120, 200, 255, 0.18);
+  --tekst: #e8ecff;
+  --dempet: #8b93b8;
+  --neon: #22e0ff;
+  --neon-2: #ff2bd6;
+  --radius: 12px;
+  --trykk: 44px; /* minste treffområde */
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--tekst);
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fast posisjon stopper Safaris gummibånd-scrolling. */
+body { position: fixed; inset: 0; }
+
+#brett {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* uten denne panorerer Safari siden i stedet */
+}
+
+/* --- Panel --- */
+#panel {
+  position: absolute;
+  top: env(safe-area-inset-top, 0);
+  left: env(safe-area-inset-left, 0);
+  right: env(safe-area-inset-right, 0);
+  margin: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--kant);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+.rad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+
+.rad-topp { margin: 0 0 4px; justify-content: space-between; }
+
+h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neon);
+  text-shadow: 0 0 12px rgba(34, 224, 255, 0.55);
+}
+
+.etikett {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dempet);
+}
+
+button, select, input[type="number"] {
+  min-height: var(--trykk);
+  padding: 0 14px;
+  font: inherit;
+  color: var(--tekst);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--kant);
+  border-radius: 9px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button:active { transform: scale(0.97); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { min-width: var(--trykk); padding: 0 12px; }
+
+button.aktiv, .chips button.aktiv {
+  background: rgba(34, 224, 255, 0.16);
+  border-color: var(--neon);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(34, 224, 255, 0.35);
+}
+
+button.primar {
+  background: linear-gradient(135deg, rgba(34, 224, 255, 0.22), rgba(255, 43, 214, 0.22));
+  border-color: rgba(120, 220, 255, 0.5);
+}
+
+.ikonknapp { min-width: var(--trykk); padding: 0; }
+
+input[type="number"] { width: 92px; text-align: center; }
+
+input[type="range"] {
+  flex: 1 1 120px;
+  min-width: 110px;
+  height: var(--trykk);
+  accent-color: var(--neon);
+  background: none;
+  border: 0;
+}
+
+.resultat { gap: 12px; }
+.resultat strong { font-size: 16px; color: #fff; }
+
+.lenke {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 13px;
+  color: var(--dempet);
+  background: none;
+  border: 1px dashed var(--kant);
+}
+
+.status {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dempet);
+  font-variant-numeric: tabular-nums;
+}
+
+body.panel-skjult .panelinnhold { display: none; }
+body.panel-skjult #panel-veksle { transform: rotate(180deg); }
+
+/* --- Laster --- */
+#laster {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: rgba(7, 7, 14, 0.78);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+#laster[hidden] { display: none; }
+
+#laster p { margin: 0; color: var(--dempet); letter-spacing: 0.04em; }
+
+.spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 3px solid rgba(34, 224, 255, 0.18);
+  border-top-color: var(--neon);
+  animation: snurr 0.9s linear infinite;
+  box-shadow: 0 0 22px rgba(34, 224, 255, 0.4);
+}
+
+@keyframes snurr { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 3s; }
+  button:active { transform: none; }
+}
+
+/* Smal skjerm: la panelet ta mindre plass. */
+@media (max-width: 560px) {
+  #panel { margin: 6px; padding: 8px; }
+  .status { display: none; }
+}
