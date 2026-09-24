@@ -418,6 +418,16 @@ tilpassCanvas();
 byggNytt();
 
 if ('serviceWorker' in navigator) {
+  // Fantes det allerede en service worker da siden lastet, betyr et bytte at
+  // en ny versjon har tatt over. Da lastes siden en gang til, sa alle filene
+  // kommer fra samme versjon. Uten dette kan ny HTML mote gammel JavaScript.
+  const haddeKontroll = !!navigator.serviceWorker.controller;
+  let lastetPaNytt = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!haddeKontroll || lastetPaNytt) return;
+    lastetPaNytt = true;
+    location.reload();
+  });
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('./sw.js').catch(function () {});
   });

@@ -1,8 +1,15 @@
 // Service worker: app-skallet ligger i cache, så spillet starter uten nett.
 // Motiv og brikker genereres lokalt, så det finnes ingenting å laste ned
 // under spilling — appen er offline av natur, ikke som et tillegg.
+//
+// Strategien er nett først med kort tidsfrist, ikke cache først.
+// Cache først høres raskere ut, men gir én utdatert last etter hver
+// oppdatering: ny index.html fra nettet sammen med gammel JavaScript fra
+// cachen. Det brakk appen i praksis. Nå hentes filene fra nettet når det
+// finnes, og fra cachen når det ikke gjør det.
 
-const CACHE = 'puslespill-v3';
+const CACHE = 'puslespill-v4';
+const NETT_FRIST_MS = 2500;
 
 const SKALL = [
   './',
@@ -14,12 +21,12 @@ const SKALL = [
   './icons/ikon-192.png',
   './icons/ikon-512.png',
   './js/main.js',
+  './js/lyd.js',
   './js/core/rng.js',
   './js/core/grid.js',
   './js/core/shape.js',
   './js/core/puzzle.js',
   './js/core/spill.js',
-  './js/lyd.js',
   './js/render/atlas.js',
   './js/render/camera.js',
   './js/render/renderer.js',
@@ -48,32 +55,28 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+async function nettForst(req) {
+  const cache = await caches.open(CACHE);
+  try {
+    const svar = await Promise.race([
+      fetch(req),
+      new Promise((_, avvis) => setTimeout(() => avvis(new Error('treg')), NETT_FRIST_MS)),
+    ]);
+    if (svar && svar.ok) cache.put(req, svar.clone());
+    return svar;
+  } catch {
+    const truffet = await cache.match(req);
+    if (truffet) return truffet;
+    if (req.mode === 'navigate') {
+      const skall = await cache.match('./index.html');
+      if (skall) return skall;
+    }
+    return new Response('Offline', { status: 503, statusText: 'Offline' });
+  }
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
-
-  // Navigasjon: prøv nett først så nye versjoner kommer fram, fall tilbake
-  // til cache når iPaden er offline.
-  if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then((r) => {
-          const kopi = r.clone();
-          caches.open(CACHE).then((c) => c.put('./index.html', kopi));
-          return r;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  e.respondWith(
-    caches.match(req).then((truffet) => truffet || fetch(req).then((r) => {
-      if (r.ok) {
-        const kopi = r.clone();
-        caches.open(CACHE).then((c) => c.put(req, kopi));
-      }
-      return r;
-    }))
-  );
+  e.respondWith(nettForst(req));
 });
