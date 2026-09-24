@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Motivgalleri</title>
+<style>
+  body { margin: 0; background: #0b0b14; color: #dfe4ff; font: 14px system-ui, sans-serif; }
+  .rutenett { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 14px; }
+  figure { margin: 0; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
+  figcaption { padding: 6px 2px; color: #8b93b8; font-variant-numeric: tabular-nums; }
+  h1 { padding: 14px 14px 0; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #22e0ff; }
+</style>
+</head>
+<body>
+<h1>Motivgalleri</h1>
+<div class="rutenett" id="ut"></div>
+<script type="module">
+import { MOTIVER } from '../js/art/motiver.js';
+import { genererMotiv } from '../js/art/motiver.js';
+
+const ut = document.getElementById('ut');
+const seed = new URL(location).searchParams.get('seed') || 'galleri1';
+const B = 900, H = 600;
+
+for (const nokkel of Object.keys(MOTIVER)) {
+  const t0 = performance.now();
+  const r = genererMotiv(nokkel, B, H, seed + ':' + nokkel);
+  const ms = performance.now() - t0;
+  const fig = document.createElement('figure');
+  r.canvas.style.width = '100%';
+  fig.append(r.canvas);
+  const cap = document.createElement('figcaption');
+  cap.textContent = `${r.meta.navn} · puslbarhet ${r.meta.puslbarhet}% · ${ms.toFixed(0)} ms`;
+  fig.append(cap);
+  ut.append(fig);
+}
+</script>
+</body>
+</html>

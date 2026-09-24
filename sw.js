@@ -2,7 +2,7 @@
 // Motiv og brikker genereres lokalt, så det finnes ingenting å laste ned
 // under spilling — appen er offline av natur, ikke som et tillegg.
 
-const CACHE = 'puslespill-v1';
+const CACHE = 'puslespill-v2';
 
 const SKALL = [
   './',
@@ -24,6 +24,9 @@ const SKALL = [
   './js/input/gester.js',
   './js/art/noise.js',
   './js/art/neon.js',
+  './js/art/tegning.js',
+  './js/art/scener.js',
+  './js/art/motiver.js',
   './js/art/palettes.js',
 ];
 

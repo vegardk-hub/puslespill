@@ -1,11 +1,11 @@
-import { makeRng, randomSeed } from './core/rng.js';
+import { randomSeed } from './core/rng.js';
 import { solveGrid, describeGrid } from './core/grid.js';
 import { lagPuslespill, spreBrikker, samleBrikker } from './core/puzzle.js';
 import { byggAtlas } from './render/atlas.js';
 import { Kamera } from './render/camera.js';
 import { Tegner } from './render/renderer.js';
 import { Gester } from './input/gester.js';
-import { genererNeon } from './art/neon.js';
+import { genererMotiv, MOTIVER } from './art/motiver.js';
 import { PALETTES } from './art/palettes.js';
 
 const $ = (s) => document.querySelector(s);
@@ -14,6 +14,7 @@ const kamera = new Kamera();
 const tegner = new Tegner(canvas, kamera);
 
 const tilstand = {
+  motiv: 'dinosaur',
   onsketAntall: 100,
   kuttstil: 'klassisk',
   palett: 'auto',
@@ -67,10 +68,8 @@ async function byggNytt({ nyttMotiv = true } = {}) {
   const mal = velgBildestorrelse(tilstand.onsketAntall, tilstand.sideforhold);
 
   if (nyttMotiv || !motiv || motiv.canvas.width !== mal.bredde || motiv.canvas.height !== mal.hoyde) {
-    const rng = makeRng(tilstand.seed + ':palett');
     const palett = tilstand.palett === 'auto' ? undefined : tilstand.palett;
-    motiv = genererNeon(mal.bredde, mal.hoyde, tilstand.seed + ':motiv', { palett });
-    void rng;
+    motiv = genererMotiv(tilstand.motiv, mal.bredde, mal.hoyde, tilstand.seed + ':motiv', { palett });
   }
   const tMotiv = performance.now() - t0;
 
@@ -97,8 +96,10 @@ async function byggNytt({ nyttMotiv = true } = {}) {
 
 function oppdaterStatus({ tMotiv = 0, tAtlas = 0 } = {}) {
   $('#brikketall').textContent = describeGrid(tilstand.onsketAntall, puslespill.rutenett);
+  const palettNavn = motiv.meta.palett ? ' / ' + PALETTES[motiv.meta.palett].navn : '';
   $('#status').textContent =
-    `${PALETTES[motiv.meta.palett].navn} · seed ${tilstand.seed} · ` +
+    `${motiv.meta.navn}${palettNavn} · puslbarhet ${motiv.meta.puslbarhet}% · ` +
+    `seed ${tilstand.seed} · ` +
     `bilde ${motiv.canvas.width}×${motiv.canvas.height} · ` +
     `atlas ${atlas.minneMB.toFixed(0)} MB / ${atlas.sider.length} side(r) · ` +
     `motiv ${tMotiv.toFixed(0)} ms · kutt ${tAtlas.toFixed(0)} ms`;
@@ -160,6 +161,11 @@ $('#alternativer').addEventListener('click', (e) => {
   settAntall(Number(b.dataset.antall));
   byggNytt({ nyttMotiv: false });
 });
+$('#motiv').addEventListener('change', (e) => {
+  tilstand.motiv = e.target.value;
+  oppdaterPalettTilgang();
+  byggNytt({ nyttMotiv: true });
+});
 $('#kuttstil').addEventListener('change', (e) => {
   tilstand.kuttstil = e.target.value;
   byggNytt({ nyttMotiv: false });
@@ -194,6 +200,28 @@ $('#panel-veksle').addEventListener('click', () => {
 });
 
 // --- Oppstart --------------------------------------------------------------
+const motivVelger = $('#motiv');
+const grupper = new Map();
+for (const [n, m] of Object.entries(MOTIVER)) {
+  if (!grupper.has(m.gruppe)) {
+    const g = document.createElement('optgroup');
+    g.label = m.gruppe;
+    grupper.set(m.gruppe, g);
+    motivVelger.append(g);
+  }
+  const o = document.createElement('option');
+  o.value = n;
+  o.textContent = m.navn;
+  grupper.get(m.gruppe).append(o);
+}
+
+/** Palettvalget gjelder bare neon - de figurative scenene har egne farger. */
+function oppdaterPalettTilgang() {
+  const bareNeon = tilstand.motiv !== 'neon';
+  $('#palett').disabled = bareNeon;
+  $('#palett').title = bareNeon ? 'Paletten gjelder bare neonmotivet' : '';
+}
+
 const palettVelger = $('#palett');
 for (const [n, p] of Object.entries(PALETTES)) {
   const o = document.createElement('option');
@@ -210,6 +238,8 @@ window.__puslespill = {
   tegner, kamera, tilstand, byggNytt, settAntall,
 };
 
+motivVelger.value = tilstand.motiv;
+oppdaterPalettTilgang();
 settAntall(100);
 tilpassCanvas();
 byggNytt();

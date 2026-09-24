@@ -3,8 +3,9 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen (neon), og egne bilder fra iPaden kommer i fase 6.
 
-**Status: fase 0–2 ferdig.** Motoren kutter og tegner puslespill opptil ~500
-brikker, og brettet kan zoomes og panoreres. Brikkene kan ennå ikke dras —
+**Status: fase 0–2 ferdig, pluss motivgeneratorene fra fase 5.** Motoren
+kutter og tegner puslespill opptil ~500 brikker, brettet kan zoomes og
+panoreres, og det finnes sju motivtyper. Brikkene kan ennå ikke dras —
 det er fase 3.
 
 ## Kjøre lokalt
@@ -28,7 +29,31 @@ js/render/renderer.js  Tegner bare når noe har endret seg.
 js/input/gester.js  Pointer Events: panorering og pinch-zoom.
 js/art/neon.js      Flow field + lagvis glød. Motivene er laget for å PUSLES.
 js/art/noise.js     Verdistøy.
+js/art/tegning.js   Tegneverktøykasse: taperte bånd, former, puslbarhetsmåling.
+js/art/scener.js    De figurative motivene – dinosaur, hus, bil, rakett, båt, katt.
+js/art/motiver.js   Registeret over alle motivtyper.
 ```
+
+## Motiv
+
+| Motiv | Gruppe | Typisk puslbarhet |
+|---|---|---:|
+| Neon | Abstrakt | 100 % |
+| Dinosaur | Figurer | 74 % |
+| Hus | Figurer | 81 % |
+| Bil | Figurer | 80 % |
+| Rakett | Figurer | 61 % |
+| Seilbåt | Figurer | 63 % |
+| Katt | Figurer | 75 % |
+
+De figurative scenene tegnes med kode i designrommet 1600 × 1067 og skaleres
+til faktisk bildestørrelse. Alt varierer med seed: farger, positur, speiling,
+antall skyer, hvor treet står. Hver scene tar 8–30 ms å tegne.
+
+Scenene er komponert for å kunne pusles. Ingen store flate felt: himmelen har
+gradient, skyer og fugler, bakken har gress, blomster og steiner, og figurene
+har flekker, striper eller paneler. Romscenen er den vanskeligste – mørke
+hjørner er vanskelig å unngå uten å ødelegge romfølelsen.
 
 ### Tre valg som styrer resten
 
