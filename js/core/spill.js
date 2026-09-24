@@ -20,6 +20,59 @@ export class Spill {
     this.startTid = 0;
     this.trekk = 0;
     this.koblinger = 0;
+    /** Brikker valgt med lasso. Flyttes samlet, men kobles ikke sammen. */
+    this.utvalg = new Set();
+  }
+
+  // --- Utvalg (lasso) ------------------------------------------------------
+
+  /** Er brikken los, enkeltstaende og ikke last? Bare slike kan velges. */
+  erLos(b) {
+    return !b.laast && this.medlemmer(b.gruppe).size === 1;
+  }
+
+  /**
+   * Velger alle lose brikker med midtpunktet innenfor rektangelet.
+   * Midtpunktet, ikke hele brikken: a treffe halve brikken skal telle.
+   */
+  velgIRekt(rekt) {
+    const x1 = Math.min(rekt.x, rekt.x + rekt.w);
+    const x2 = Math.max(rekt.x, rekt.x + rekt.w);
+    const y1 = Math.min(rekt.y, rekt.y + rekt.h);
+    const y2 = Math.max(rekt.y, rekt.y + rekt.h);
+    this.utvalg.clear();
+    for (const b of this.p.brikker) {
+      if (!this.erLos(b)) continue;
+      const mx = b.x + this.p.brikkeB / 2;
+      const my = b.y + this.p.brikkeH / 2;
+      if (mx >= x1 && mx <= x2 && my >= y1 && my <= y2) this.utvalg.add(b.id);
+    }
+    return this.utvalg.size;
+  }
+
+  tomUtvalg() {
+    const hadde = this.utvalg.size > 0;
+    this.utvalg.clear();
+    return hadde;
+  }
+
+  /** Loft hele utvalget overst, og gi et handtak som kan dras. */
+  startUtvalgDrag() {
+    if (!this.utvalg.size) return null;
+    if (!this.startTid) this.startTid = performance.now();
+    const under = [];
+    const over = [];
+    for (const id of this.p.rekkefolge) (this.utvalg.has(id) ? over : under).push(id);
+    this.p.rekkefolge = under.concat(over);
+    return { utvalg: true, sett: this.utvalg };
+  }
+
+  flyttSett(sett, dx, dy) {
+    for (const id of sett) {
+      const b = this.p.brikker[id];
+      b.x += dx;
+      b.y += dy;
+    }
   }
 
   // --- Treffdeteksjon ------------------------------------------------------
@@ -204,6 +257,7 @@ export class Spill {
       }
     }
 
+    if (koblinger) for (const id of this.medlemmer(gruppe)) this.utvalg.delete(id);
     if (hjem) this.senkGruppe(gruppe);
     this.koblinger += koblinger;
     handtak.gruppe = gruppe;

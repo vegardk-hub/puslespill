@@ -134,3 +134,65 @@ export function samleBrikker(puslespill) {
     b.laast = true;
   }
 }
+
+/**
+ * Legger alle løse brikker i et ryddig rutenett rundt rammen.
+ *
+ * Rekkefølgen følger brikkenes NÅVÆRENDE posisjoner, ikke bildet. To grunner:
+ * å sortere dem etter bildet ville røpet løsningen, og å rydde skal flytte
+ * haugen minst mulig – brikkene skal bli liggende omtrent der du la dem.
+ *
+ * @param {(b:object)=>boolean} erLos avgjør hvilke brikker som skal flyttes
+ */
+export function ryddBrikker(puslespill, bord, erLos) {
+  const lose = puslespill.brikker.filter(erLos);
+  if (!lose.length) return 0;
+
+  const ramme = puslespill.ramme;
+  const naturlig = Math.max(puslespill.brikkeB, puslespill.brikkeH) * 1.1;
+  const sperre = {
+    x: ramme.x - puslespill.brikkeB * 0.25,
+    y: ramme.y - puslespill.brikkeH * 0.25,
+    w: ramme.w + puslespill.brikkeB * 0.5,
+    h: ramme.h + puslespill.brikkeH * 0.5,
+  };
+
+  // Finn en cellestørrelse der alle brikkene får plass utenfor rammen.
+  let celle = naturlig;
+  let plasser = [];
+  for (let forsok = 0; forsok < 8; forsok++) {
+    plasser = [];
+    const kol = Math.max(1, Math.floor(bord.w / celle));
+    const rad = Math.max(1, Math.floor(bord.h / celle));
+    const startX = bord.x + (bord.w - kol * celle) / 2;
+    const startY = bord.y + (bord.h - rad * celle) / 2;
+    for (let r = 0; r < rad && plasser.length < lose.length; r++) {
+      for (let c = 0; c < kol && plasser.length < lose.length; c++) {
+        const x = startX + c * celle;
+        const y = startY + r * celle;
+        const midtX = x + celle / 2;
+        const midtY = y + celle / 2;
+        const iRammen = midtX > sperre.x && midtX < sperre.x + sperre.w &&
+                        midtY > sperre.y && midtY < sperre.y + sperre.h;
+        if (iRammen) continue;
+        plasser.push({ x, y });
+      }
+    }
+    if (plasser.length >= lose.length) break;
+    celle *= 0.88;
+  }
+
+  // Samme leserekkefølge på begge sider gjør at brikkene flytter seg minst mulig.
+  const sortert = lose.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  plasser.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+  const n = Math.min(sortert.length, plasser.length);
+  for (let i = 0; i < n; i++) {
+    const b = sortert[i];
+    b.x = plasser[i].x + (celle - puslespill.brikkeB) / 2;
+    b.y = plasser[i].y + (celle - puslespill.brikkeH) / 2;
+    b.animX = 0;
+    b.animY = 0;
+  }
+  return n;
+}

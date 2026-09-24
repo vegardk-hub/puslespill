@@ -151,22 +151,33 @@ export function malPuslbarhet(ctx, bredde, hoyde, celler = 9) {
   const rader = Math.max(3, Math.round((celler * hoyde) / bredde));
   const cw = bredde / celler;
   const ch = hoyde / rader;
+  // En lesning av hele bildet. Ett getImageData per celle ville kostet
+  // en GPU-synkronisering hver gang, og det er kallene som koster - ikke
+  // pikslene.
+  const d = ctx.getImageData(0, 0, bredde, hoyde).data;
   const flate = [];
   let sumScore = 0;
 
   for (let r = 0; r < rader; r++) {
     const rad = [];
     for (let c = 0; c < celler; c++) {
-      const d = ctx.getImageData(
-        Math.floor(c * cw), Math.floor(r * ch),
-        Math.max(1, Math.floor(cw)), Math.max(1, Math.floor(ch))).data;
+      const x0 = Math.floor(c * cw);
+      const y0 = Math.floor(r * ch);
+      const x1 = Math.min(bredde, Math.ceil((c + 1) * cw));
+      const y1 = Math.min(hoyde, Math.ceil((r + 1) * ch));
+      const stegX = Math.max(1, Math.floor((x1 - x0) / 14));
+      const stegY = Math.max(1, Math.floor((y1 - y0) / 14));
+
       let sum = 0, sum2 = 0, n = 0;
-      for (let i = 0; i < d.length; i += 4 * 17) {
-        const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-        sum += l; sum2 += l * l; n++;
+      for (let y = y0; y < y1; y += stegY) {
+        for (let x = x0; x < x1; x += stegX) {
+          const i = (y * bredde + x) * 4;
+          const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+          sum += l; sum2 += l * l; n++;
+        }
       }
-      const varians = Math.max(0, sum2 / n - (sum / n) ** 2);
-      // Standardavvik på ~26 lumakvanter holder i massevis; over det er cellen fin.
+      const varians = n ? Math.max(0, sum2 / n - (sum / n) ** 2) : 0;
+      // Standardavvik pa ~26 lumakvanter holder i massevis.
       const cellescore = Math.min(1, Math.sqrt(varians) / 26);
       rad.push(cellescore);
       sumScore += cellescore;

@@ -24,6 +24,12 @@ export class Tegner {
     this.spokelseStyrke = 0.15;
     /** {sett:Set<id>, anker:{x,y}, skala:number} mens noe dras. */
     this.dragGruppe = null;
+    /** Skuffen tegnes i skjermkoordinater over verden. */
+    this.skuff = null;
+    /** Lassorektangel i verdenskoordinater mens det trekkes opp. */
+    this.lasso = null;
+    /** Set med brikke-id-er som er valgt med lasso. */
+    this.utvalg = null;
     /** Funksjoner som kjøres hver frame og selv sier om de er ferdige. */
     this.animatorer = new Set();
     this.sisteTegnet = 0;
@@ -92,6 +98,14 @@ export class Tegner {
 
     this._tegnBord();
     this._tegnBrikker();
+    this._tegnUtvalg();
+    this._tegnLasso();
+
+    // Skuffen ligger over verden, i CSS-piksler.
+    if (this.skuff && this.puslespill && this.atlas) {
+      ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      this.skuff.tegn(ctx, this.atlas, this.puslespill);
+    }
 
     this.sisteTegnet = performance.now() - t0;
   }
@@ -156,6 +170,38 @@ export class Tegner {
       ctx.fill(b.path);
       ctx.restore();
     }
+    ctx.restore();
+  }
+
+  /** Lyser opp brikkene som er valgt med lasso. */
+  _tegnUtvalg() {
+    if (!this.utvalg || !this.utvalg.size || this.utvalg.size > 260) return;
+    const { ctx, puslespill } = this;
+    ctx.save();
+    ctx.lineWidth = 3 / this.kamera.skala;
+    ctx.strokeStyle = 'rgba(34, 224, 255, 0.95)';
+    ctx.lineJoin = 'round';
+    for (const id of this.utvalg) {
+      const b = puslespill.brikker[id];
+      ctx.save();
+      ctx.translate(b.x + b.animX - b.hjemX, b.y + b.animY - b.hjemY);
+      ctx.stroke(b.path);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  _tegnLasso() {
+    if (!this.lasso) return;
+    const { ctx } = this;
+    const l = this.lasso;
+    ctx.save();
+    ctx.fillStyle = 'rgba(34, 224, 255, 0.10)';
+    ctx.strokeStyle = 'rgba(34, 224, 255, 0.85)';
+    ctx.lineWidth = 2 / this.kamera.skala;
+    ctx.setLineDash([8 / this.kamera.skala, 6 / this.kamera.skala]);
+    ctx.fillRect(l.x, l.y, l.w, l.h);
+    ctx.strokeRect(l.x, l.y, l.w, l.h);
     ctx.restore();
   }
 

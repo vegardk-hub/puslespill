@@ -1,11 +1,12 @@
 import { randomSeed } from './core/rng.js';
 import { solveGrid, describeGrid } from './core/grid.js';
-import { lagPuslespill, spreBrikker, samleBrikker } from './core/puzzle.js';
+import { lagPuslespill, spreBrikker, samleBrikker, ryddBrikker } from './core/puzzle.js';
 import { Spill, formaterTid } from './core/spill.js';
 import { byggAtlas } from './render/atlas.js';
 import { Kamera } from './render/camera.js';
 import { Tegner, MAKS_LOFT } from './render/renderer.js';
 import { Gester } from './input/gester.js';
+import { Skuff, FARGEBOTTER } from './ui/skuff.js';
 import { genererMotiv, MOTIVER } from './art/motiver.js';
 import { PALETTES } from './art/palettes.js';
 import * as lyd from './lyd.js';
@@ -14,6 +15,8 @@ const $ = (s) => document.querySelector(s);
 const canvas = $('#brett');
 const kamera = new Kamera();
 const tegner = new Tegner(canvas, kamera);
+const skuff = new Skuff();
+tegner.skuff = skuff;
 
 const tilstand = {
   motiv: 'dinosaur',
@@ -34,6 +37,8 @@ let bord = null;
 let spill = null;
 let klokke = 0;
 let visHeleBordet = false;
+let skuffTrykk = null;
+let lassoFra = null;
 
 /**
  * Bordet må være stort nok til at alle brikkene får plass rundt rammen,
@@ -58,7 +63,10 @@ function visning() {
 /** Plassen panelet legger beslag på, så brettet sentreres i resten. */
 function innrykk() {
   const p = $('#panel').getBoundingClientRect();
-  return { topp: Math.min(p.bottom + 8, canvas.clientHeight * 0.55) };
+  return {
+    topp: Math.min(p.bottom + 8, canvas.clientHeight * 0.45),
+    bunn: skuff.rekt.h + (skuff.apen ? 44 : 0),
+  };
 }
 
 /**
@@ -126,6 +134,7 @@ async function byggNytt({ nyttMotiv = true } = {}) {
 
   startKlokke();
   oppdaterStatus({ tMotiv, tAtlas });
+  oppdaterSkuff();
   oppdaterSpillstatus();
   $('#laster').hidden = true;
 }
@@ -170,7 +179,84 @@ function feire() {
   if (tilstand.lyd) lyd.ferdig();
 }
 
+/** Regner ut skuffens innhold og layout pa nytt, og bygger filterknappene. */
+function oppdaterSkuff() {
+  if (!puslespill || !spill) return;
+  skuff.oppdater(puslespill, spill);
+  skuff.layout(canvas.clientWidth, canvas.clientHeight);
+  byggFilterknapper();
+  $('#skufflinje').style.bottom = skuff.apen ? skuff.rekt.h + 'px' : '0px';
+  $('#skufflinje').hidden = !skuff.apen;
+  tegner.merkSkitten();
+}
+
+function byggFilterknapper() {
+  const tell = Skuff.botteTelling(puslespill, spill);
+  const kantAntall = Skuff.kandidater(puslespill, spill)
+    .filter((b) => b.r === 0 || b.c === 0 || b.r === puslespill.rows - 1 || b.c === puslespill.cols - 1)
+    .length;
+
+  const valg = [
+    { id: 'alle', navn: 'Alle', antall: Skuff.kandidater(puslespill, spill).length, farge: null },
+    { id: 'kant', navn: 'Kanter', antall: kantAntall, farge: '#22e0ff' },
+  ];
+  for (const b of FARGEBOTTER) {
+    const n = tell.get(b.id) || 0;
+    if (n >= 1) valg.push({ id: b.id, navn: b.navn, antall: n, farge: b.farge });
+  }
+  // Filteret kan ha blitt tomt fordi brikkene er lagt pa plass.
+  if (!valg.some((v) => v.id === skuff.filter)) skuff.filter = 'alle';
+
+  const boks = $('#skufffiltre');
+  boks.innerHTML = valg.map((v) => `
+    <button class="filterknapp${v.id === skuff.filter ? ' aktiv' : ''}" data-filter="${v.id}">
+      ${v.farge ? `<i style="background:${v.farge}"></i>` : ''}${v.navn}
+      <b>${v.antall}</b>
+    </button>`).join('');
+}
+
+/**
+ * Skuffen far pekeren for verden gjor det.
+ * Retningen avgjor hva som skjer: sidelengs ruller bandet, oppover lofter
+ * brikken ut pa bordet. Det er det samme monsteret som en karusell man kan
+ * dra elementer ut av, og det krever ingen ekstra knapp.
+ */
+const skuffLag = {
+  traff: (pos) => skuff.inni(pos.x, pos.y),
+  ned: (pos) => {
+    skuffTrykk = { id: skuff.brikkeVed(pos.x, pos.y), modus: 'usikker' };
+  },
+  beveg: (pos, dxTot, dyTot, dxSteg) => {
+    if (!skuffTrykk) return;
+    if (skuffTrykk.modus === 'usikker') {
+      if (Math.abs(dxTot) > 10 && Math.abs(dxTot) >= Math.abs(dyTot)) skuffTrykk.modus = 'rull';
+      else if (dyTot < -12 && skuffTrykk.id !== null) skuffTrykk.modus = 'loft';
+      else return;
+    }
+    if (skuffTrykk.modus === 'rull') {
+      skuff.rullMed(dxSteg);
+      return;
+    }
+    // Loft: flytt brikken under fingeren og la et vanlig drag ta over.
+    const b = puslespill.brikker[skuffTrykk.id];
+    const verden = kamera.tilVerden(pos.x, pos.y);
+    b.x = verden.x - puslespill.brikkeB / 2;
+    b.y = verden.y - puslespill.brikkeH / 2;
+    b.animX = 0;
+    b.animY = 0;
+    const h = spill.startDrag(b);
+    skuff.uteId = b.id;
+    skuffTrykk = null;
+    if (!h) return;
+    if (tilstand.lyd) lyd.loft();
+    return { overtaSomDrag: h };
+  },
+  opp: () => { skuffTrykk = null; },
+  hjul: (d) => skuff.rullMed(-d),
+};
+
 new Gester(canvas, kamera, {
+  skjermlag: skuffLag,
   onEndring: () => tegner.merkSkitten(),
   hentBord: () => bord,
   hentVisning: visning,
@@ -184,11 +270,14 @@ new Gester(canvas, kamera, {
   finnHandtak: (verden) => {
     if (!spill) return null;
     const b = spill.brikkeUnder(verden, 14 / kamera.skala);
+    if (!b) return null;
+    // Tar du i en valgt brikke, flyttes hele utvalget.
+    if (spill.utvalg.has(b.id)) return spill.startUtvalgDrag();
     return spill.startDrag(b);
   },
 
   onDragStart: (handtak, verden) => {
-    const sett = spill.medlemmer(handtak.gruppe);
+    const sett = handtak.utvalg ? handtak.sett : spill.medlemmer(handtak.gruppe);
     for (const id of sett) {
       puslespill.brikker[id].animX = 0;
       puslespill.brikker[id].animY = 0;
@@ -202,13 +291,21 @@ new Gester(canvas, kamera, {
   },
 
   onDrag: (handtak, dx, dy, verden) => {
-    spill.dragTil(handtak, dx, dy);
+    if (handtak.utvalg) spill.flyttSett(handtak.sett, dx, dy);
+    else spill.dragTil(handtak, dx, dy);
     if (tegner.dragGruppe) tegner.dragGruppe.anker = verden;
   },
 
   onDragSlutt: (handtak) => {
     tegner.dragGruppe = null;
+    skuff.uteId = null;
     if (!handtak) return;
+    // Et utvalg flyttes bare - det skal ikke koble seg sammen av seg selv.
+    if (handtak.utvalg) {
+      if (tilstand.lyd) lyd.legg();
+      oppdaterSkuff();
+      return;
+    }
     const res = spill.slipp(handtak, toleranse(), tilstand.festTilBrett);
     if (res.koblinger) {
       animerKobling();
@@ -217,7 +314,38 @@ new Gester(canvas, kamera, {
       lyd.legg();
     }
     oppdaterSpillstatus();
+    oppdaterSkuff();
     if (res.ferdig) feire();
+  },
+
+  // --- Lasso -------------------------------------------------------------
+  onLassoStart: (verden) => {
+    lassoFra = verden;
+    tegner.lasso = { x: verden.x, y: verden.y, w: 0, h: 0 };
+  },
+  onLasso: (verden) => {
+    if (!lassoFra) return;
+    tegner.lasso = {
+      x: lassoFra.x, y: lassoFra.y,
+      w: verden.x - lassoFra.x, h: verden.y - lassoFra.y,
+    };
+  },
+  onLassoSlutt: () => {
+    if (tegner.lasso) {
+      spill.velgIRekt(tegner.lasso);
+      tegner.utvalg = spill.utvalg;
+      if (tilstand.lyd && spill.utvalg.size) lyd.loft();
+    }
+    tegner.lasso = null;
+    lassoFra = null;
+    oppdaterSpillstatus();
+  },
+  onTomtTrykk: () => {
+    if (spill.tomUtvalg()) {
+      tegner.utvalg = spill.utvalg;
+      tegner.merkSkitten();
+      oppdaterSpillstatus();
+    }
   },
 });
 
@@ -243,9 +371,10 @@ function oppdaterSpillstatus() {
   if (!spill) return;
   const andel = spill.fremdrift();
   $('#fremdrift-linje').style.width = (andel * 100).toFixed(1) + '%';
+  const valgt = spill.utvalg.size ? ` · ${spill.utvalg.size} valgt` : '';
   $('#spillstatus').textContent =
     `${Math.round(andel * puslespill.antall)} / ${puslespill.antall} brikker · ` +
-    `${formaterTid(spill.brukteSekunder())}`;
+    `${formaterTid(spill.brukteSekunder())}${valgt}`;
 }
 
 function startKlokke() {
@@ -268,6 +397,7 @@ let resizeTimer = 0;
 function tilpassCanvas() {
   const r = canvas.getBoundingClientRect();
   const endret = tegner.tilpassStorrelse(r.width, r.height, window.devicePixelRatio);
+  if (puslespill && spill) oppdaterSkuff();
   if (endret && puslespill) {
     kamera.minSkala = Math.min(r.width / bord.w, r.height / bord.h) * 0.75;
     kamera.begrens(bord, r.width, r.height);
@@ -328,20 +458,43 @@ $('#nytt').addEventListener('click', () => {
   tilstand.seed = randomSeed();
   byggNytt({ nyttMotiv: true });
 });
+$('#skuffknapp').addEventListener('click', () => {
+  skuff.apen = !skuff.apen;
+  $('#skuffknapp').classList.toggle('aktiv', skuff.apen);
+  oppdaterSkuff();
+  tilpassVisning(visHeleBordet ? bord : arbeidsutsnitt());
+});
+$('#rydd').addEventListener('click', () => {
+  const n = ryddBrikker(puslespill, bord, (b) => spill.erLos(b));
+  if (n && tilstand.lyd) lyd.legg();
+  oppdaterSkuff();
+  tegner.merkSkitten();
+});
+$('#skufffiltre').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-filter]');
+  if (!k) return;
+  skuff.filter = k.dataset.filter;
+  skuff.rull = 0;
+  oppdaterSkuff();
+});
 $('#stokk').addEventListener('click', () => {
   spreBrikker(puslespill, bord);
   spill = new Spill(puslespill);
   tegner.dragGruppe = null;
+  tegner.utvalg = spill.utvalg;
   $('#ferdig').hidden = true;
   startKlokke();
   visHeleBordet = false;
   tilpassVisning(arbeidsutsnitt());
+  oppdaterSkuff();
   oppdaterSpillstatus();
 });
 $('#fasit').addEventListener('click', () => {
   samleBrikker(puslespill);
   tegner.dragGruppe = null;
+  tegner.utvalg = null;
   tilpassVisning(puslespill.ramme);
+  oppdaterSkuff();
   oppdaterSpillstatus();
 });
 $('#spokelse').addEventListener('input', (e) => {
@@ -406,13 +559,14 @@ window.__puslespill = {
   get atlas() { return atlas; },
   get bord() { return bord; },
   get spill() { return spill; },
-  tegner, kamera, tilstand, byggNytt, settAntall, toleranse,
+  tegner, kamera, tilstand, byggNytt, settAntall, toleranse, skuff, oppdaterSkuff,
 };
 
 motivVelger.value = tilstand.motiv;
 oppdaterPalettTilgang();
 $('#fest').classList.toggle('aktiv', tilstand.festTilBrett);
 $('#lydknapp').classList.toggle('aktiv', tilstand.lyd);
+$('#skuffknapp').classList.toggle('aktiv', skuff.apen);
 settAntall(100);
 tilpassCanvas();
 byggNytt();

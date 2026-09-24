@@ -3,10 +3,10 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen (neon), og egne bilder fra iPaden kommer i fase 6.
 
-**Status: fase 0–3 ferdig, pluss motivgeneratorene fra fase 5.**
-Puslespillet er spillbart: brikkene dras, kobler seg sammen i grupper og
-fester seg på brettet. Neste steg er fase 4 – brikkeskuff, lasso og
-sorteringsfiltre.
+**Status: fase 0–4 ferdig, pluss motivgeneratorene fra fase 5.**
+Puslespillet er spillbart, og brikkene lar seg finne: skuff med filtre,
+lasso for å flytte hauger, og opprydning i rutenett. Neste steg er fase 6 –
+egne bilder fra iPaden.
 
 ## Kjøre lokalt
 
@@ -28,6 +28,7 @@ js/render/camera.js Pan/zoom i verdenskoordinater.
 js/render/renderer.js  Tegner bare når noe har endret seg.
 js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping.
 js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
+js/ui/skuff.js      Brikkeskuffen: register over løse brikker, med filtre.
 js/lyd.js           Lyd laget med oscillatorer. Ingen lydfiler.
 js/art/neon.js      Flow field + lagvis glød. Motivene er laget for å PUSLES.
 js/art/noise.js     Verdistøy.
@@ -44,6 +45,9 @@ js/art/motiver.js   Registeret over alle motivtyper.
 | Én finger på tomt bord | Flytt bordet |
 | To fingre | Zoom og flytt bordet |
 | Dobbelttrykk på tomt bord | Veksle mellom oversikt og arbeidsvisning |
+| Hold på tomt bord, så dra | Lasso rundt en haug |
+| I skuffen: dra sidelengs | Rull båndet |
+| I skuffen: dra oppover | Løft brikken ut på bordet |
 
 Legger du ned en finger nummer to mens du drar, slippes brikken der den er
 og zoomen tar over. Det er mer forutsigbart enn å forsøke begge deler.
@@ -71,6 +75,34 @@ Planen nevnte spatial hashing her. Det viste seg unødvendig: treffprøving
 skjer bare ved `pointerdown`, og snapping slår bare opp en brikkes fire
 naboer i rutenettet. 500 boksprøver ved hvert fingertrykk koster ingenting.
 Enklere er bedre.
+
+## Å finne brikkene igjen
+
+Etter annonsene er dette den største klagen mot puslespillapper: brikkene
+gjemmer seg. Haugen ligger oppå seg selv, og den ene brikken du leter etter
+er under de andre. Tre ting svarer på det.
+
+**Skuffen** er et register, ikke en beholder. Den viser alle løse
+enkeltbrikker i et bånd som aldri overlapper, og du drar dem rett ut på
+bordet. Retningen avgjør hva som skjer: sidelengs ruller båndet, oppover
+løfter brikken ut. Samme mønster som en karusell man kan dra elementer ut
+av, og det krever ingen ekstra knapp.
+
+En brikke du har lagt fra deg på bordet uten å koble den, ligger fortsatt i
+skuffen. Det er meningen – det er nettopp den brikken som pleier å bli borte.
+
+**Filtrene** sorterer skuffen: alle, bare kantbrikker, eller etter farge.
+Fargebøttene regnes ut fra hver brikkes egen snittfarge, målt i bildet, og
+bare bøtter som faktisk har brikker vises. Ingen brikke er uten et filter
+som finner den.
+
+**Rydd** legger alle løse brikker i et rutenett rundt rammen. Rekkefølgen
+følger brikkenes nåværende posisjoner, ikke bildet – å sortere dem etter
+bildet ville røpet løsningen, og opprydning skal flytte haugen minst mulig.
+
+**Lasso**: hold fingeren på tomt bord og dra. Brikkene innenfor blir valgt
+og kan flyttes samlet. Et utvalg kobler seg ikke sammen av seg selv – det
+skal kunne skyves til side uten at noe fester seg.
 
 ## Motiv
 
@@ -131,20 +163,41 @@ Full opptegning av alle brikker, desktop (Chromium, dpr 1.5):
 | 204 | 32,8 MB | 3 | 0,32 ms |
 | 504 | 32,9 MB | 3 | 0,82 ms |
 
-Bygging av et nytt puslespill (motiv + kutt + atlas) tar 200–330 ms.
-Dragning av en gruppe på 12 brikker tegner på 0,7 ms.
+Bygging av et nytt puslespill tar 52–141 ms for de figurative motivene.
+Neonmotivet er tyngre: 785 ms på 2048 piksler, fordi gløden bygges av fem
+lag strek. Dragning av en gruppe på 12 brikker tegner på 0,7 ms.
+
+### getImageData koster per kall, ikke per piksel
+
+Fargesorteringen ble først skrevet som én `drawImage` + `getImageData` per
+brikke. Kuttetiden gikk fra 6 ms til **1296 ms** for 96 brikker. Hver
+`getImageData` tvinger en synkronisering mellom GPU og CPU, og den regningen
+betales per kall.
+
+Én lesning av kildebildet og deretter ren løkkegang over pikslene gjør det
+samme arbeidet på under 40 ms, også for 504 brikker. Samme feil lå i
+puslbarhetsmålingen og i neongeneratorens landemerker – 81 kall hver. Begge
+er rettet.
 **Tallene må måles på nytt på ekte iPad.**
 
 ## Testet
 
-15 automatiske sjekker av spillogikken kjører mot den bygde appen: kobling
-innenfor og utenfor toleranse, eksakt plassering etter snapping, kaskade
-mellom to grupper, at en gruppe flytter seg samlet, låsing mot brettet,
-treffdeteksjon med og uten slakk, og full gjennomspilling til ferdig.
+36 automatiske sjekker kjører mot den bygde appen.
+
+Spillogikk: kobling innenfor og utenfor toleranse, eksakt plassering etter
+snapping, kaskade mellom to grupper, at en gruppe flytter seg samlet, låsing
+mot brettet, treffdeteksjon med og uten slakk, og full gjennomspilling.
+
+Skuff og opprydning: at skuffen bare viser løse enkeltbrikker, at kantfilteret
+gir nøyaktig `2(kolonner + rader) − 4` brikker, at fargebøttene dekker alle
+brikker, at lasso velger riktig, at et utvalg flytter seg samlet, og at
+opprydning ved 54, 204 og 504 brikker gir null overlapp, ingenting oppå
+rammen og ingenting utenfor bordet.
 
 I tillegg er hele berøringskjeden verifisert med ekte pointer events:
-en brikke ble dratt 18 piksler bom og smatt eksakt på plass, og panorering
-på tomt bord flyttet kameraet uten å røre en eneste brikke.
+en brikke ble dratt 18 piksler bom og smatt eksakt på plass, panorering på
+tomt bord flyttet kameraet uten å røre en eneste brikke, en brikke ble
+løftet ut av skuffen og opp på bordet, og båndet rullet sidelengs.
 
 ## Ikke verifisert ennå
 

@@ -67,27 +67,35 @@ function sikreLandemerker(ctx, w, h, rng, pal, celler = 9) {
   const rader = Math.max(3, Math.round((celler * h) / w));
   const cw = w / celler;
   const ch = h / rader;
+  // En lesning av hele lerretet. Ett getImageData per celle koster en
+  // GPU-synkronisering hver gang, og det er kallene som koster.
+  const d = ctx.getImageData(0, 0, w, h).data;
   let lagtTil = 0;
+
   for (let r = 0; r < rader; r++) {
     for (let c = 0; c < celler; c++) {
-      const x = Math.floor(c * cw);
-      const y = Math.floor(r * ch);
-      const sw = Math.max(1, Math.floor(cw));
-      const sh = Math.max(1, Math.floor(ch));
-      const d = ctx.getImageData(x, y, sw, sh).data;
-      // Standardavvik pa luminans, samplet grovt.
+      const x0 = Math.floor(c * cw);
+      const y0 = Math.floor(r * ch);
+      const x1 = Math.min(w, Math.ceil((c + 1) * cw));
+      const y1 = Math.min(h, Math.ceil((r + 1) * ch));
+      const stegX = Math.max(1, Math.floor((x1 - x0) / 14));
+      const stegY = Math.max(1, Math.floor((y1 - y0) / 14));
+
       let sum = 0, sum2 = 0, n = 0;
-      for (let i = 0; i < d.length; i += 4 * 17) {
-        const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-        sum += l; sum2 += l * l; n++;
+      for (let y = y0; y < y1; y += stegY) {
+        for (let x = x0; x < x1; x += stegX) {
+          const i = (y * w + x) * 4;
+          const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+          sum += l; sum2 += l * l; n++;
+        }
       }
-      const varians = sum2 / n - (sum / n) ** 2;
+      const varians = n ? sum2 / n - (sum / n) ** 2 : 0;
       if (varians < 90) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         const hue = rng.pick(pal.hues) + rng.range(-12, 12);
-        const px = x + rng.range(0.25, 0.75) * sw;
-        const py = y + rng.range(0.25, 0.75) * sh;
+        const px = x0 + rng.range(0.25, 0.75) * (x1 - x0);
+        const py = y0 + rng.range(0.25, 0.75) * (y1 - y0);
         orb(ctx, px, py, Math.min(cw, ch) * rng.range(0.30, 0.52), hue);
         ctx.restore();
         lagtTil++;

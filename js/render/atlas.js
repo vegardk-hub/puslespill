@@ -91,6 +91,62 @@ function tegnBrikke(ctx, brikke, plass, kilde, bilde, pad) {
   ctx.restore();
 }
 
+/** RGB til HSL, alle verdier 0-1 bortsett fra h som er 0-360. */
+function tilHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const maks = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (maks + min) / 2;
+  if (maks === min) return { h: 0, s: 0, l };
+  const d = maks - min;
+  const s = l > 0.5 ? d / (2 - maks - min) : d / (maks + min);
+  let h;
+  if (maks === r) h = ((g - b) / d + (g < b ? 6 : 0));
+  else if (maks === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  return { h: h * 60, s, l };
+}
+
+/**
+ * Snittfargen i hver brikkes indre, lest fra KILDEBILDET i en lesning.
+ *
+ * Forste forsok leste hver brikke for seg fra atlaset med drawImage +
+ * getImageData. Det tok 1296 ms for 96 brikker: hver getImageData tvinger
+ * en synkronisering mellom GPU og CPU, og den kostnaden betales per kall,
+ * ikke per piksel. En lesning per atlasside tok 320 ms. En lesning av
+ * kildebildet - som er mindre enn atlaset - tar en brokdel.
+ *
+ * Vi leser bare midtpartiet av hver celle, ikke kantene: tappene stikker
+ * inn i naboen, og a ta dem med ville blandet fargene sammen.
+ */
+function malFarger(kilde, puslespill) {
+  const ctx = kilde.getContext('2d', { willReadFrequently: true });
+  const W = kilde.width;
+  const H = kilde.height;
+  const d = ctx.getImageData(0, 0, W, H).data;
+  const inn = 0.2;
+
+  for (const b of puslespill.brikker) {
+    const x0 = Math.max(0, Math.floor(b.hjemX + puslespill.brikkeB * inn));
+    const y0 = Math.max(0, Math.floor(b.hjemY + puslespill.brikkeH * inn));
+    const x1 = Math.min(W, Math.ceil(b.hjemX + puslespill.brikkeB * (1 - inn)));
+    const y1 = Math.min(H, Math.ceil(b.hjemY + puslespill.brikkeH * (1 - inn)));
+    const stegX = Math.max(1, Math.floor((x1 - x0) / 8));
+    const stegY = Math.max(1, Math.floor((y1 - y0) / 8));
+
+    let r = 0, g = 0, bl = 0, n = 0;
+    for (let y = y0; y < y1; y += stegY) {
+      for (let x = x0; x < x1; x += stegX) {
+        const i = (y * W + x) * 4;
+        r += d[i]; g += d[i + 1]; bl += d[i + 2]; n++;
+      }
+    }
+    if (!n) { b.snittfarge = { r: 128, g: 128, b: 128, h: 0, s: 0, l: 0.5 }; continue; }
+    r /= n; g /= n; bl /= n;
+    b.snittfarge = { r, g, b: bl, ...tilHsl(r, g, bl) };
+  }
+}
+
 export function byggAtlas(kilde, puslespill) {
   const pad = Math.max(6, Math.round(Math.min(puslespill.brikkeB, puslespill.brikkeH) * 0.10));
   const { plasser, sidemal } = planlegg(puslespill, pad);
@@ -115,6 +171,8 @@ export function byggAtlas(kilde, puslespill) {
       oy: brikke.bbox.y - pad - brikke.hjemY,
     };
   }
+
+  malFarger(kilde, puslespill);
 
   const piksler = sider.reduce((s, c) => s + c.width * c.height, 0);
   return {
