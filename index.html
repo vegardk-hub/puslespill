@@ -71,9 +71,18 @@
     <div class="rad">
       <span class="etikett">Spøkelse</span>
       <input id="spokelse" type="range" min="0" max="60" value="15" aria-label="Styrke på spøkelsesbilde">
-      <button id="nytt" class="primar">Nytt motiv</button>
-      <button id="spre">Spre</button>
+      <button id="fest" aria-pressed="true">Fest til brettet</button>
+      <button id="lydknapp" aria-pressed="true">Lyd på</button>
     </div>
+
+    <div class="rad">
+      <button id="nytt" class="primar">Nytt motiv</button>
+      <button id="stokk">Stokk</button>
+      <button id="fasit">Fasit</button>
+      <span id="spillstatus" class="spillstatus">—</span>
+    </div>
+
+    <div class="fremdrift"><div id="fremdrift-linje"></div></div>
 
     <p id="status" class="status">—</p>
   </div>
@@ -82,6 +91,15 @@
 <div id="laster" hidden>
   <div class="spinner"></div>
   <p id="laster-tekst">Tegner motiv …</p>
+</div>
+
+<div id="ferdig" hidden>
+  <div class="ferdigkort">
+    <div class="ferdigikon">&#9733;</div>
+    <h2>Ferdig!</h2>
+    <p id="ferdig-tekst"></p>
+    <p class="hint">Trykk for å lukke</p>
+  </div>
 </div>
 
 <script type="module" src="./js/main.js"></script>

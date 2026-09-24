@@ -188,3 +188,80 @@ body.panel-skjult #panel-veksle { transform: rotate(180deg); }
   #panel { margin: 6px; padding: 8px; }
   .status { display: none; }
 }
+
+/* --- Spillstatus --- */
+.spillstatus {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--tekst);
+  white-space: nowrap;
+}
+
+.fremdrift {
+  height: 5px;
+  margin: 8px 0 2px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.fremdrift > div {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--neon), var(--neon-2));
+  box-shadow: 0 0 10px rgba(34, 224, 255, 0.55);
+  transition: width 0.25s ease-out;
+}
+
+/* --- Ferdig --- */
+#ferdig {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  background: rgba(7, 7, 14, 0.66);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 6;
+  cursor: pointer;
+}
+
+#ferdig[hidden] { display: none; }
+
+.ferdigkort {
+  padding: 30px 44px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid rgba(34, 224, 255, 0.45);
+  border-radius: 18px;
+  box-shadow: 0 0 60px rgba(34, 224, 255, 0.3), 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: opp 0.35s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+.ferdigikon {
+  font-size: 46px;
+  line-height: 1;
+  color: var(--neon);
+  text-shadow: 0 0 26px rgba(34, 224, 255, 0.85);
+}
+
+.ferdigkort h2 {
+  margin: 10px 0 4px;
+  font-size: 26px;
+  letter-spacing: 0.04em;
+}
+
+.ferdigkort p { margin: 4px 0; color: var(--tekst); }
+.ferdigkort .hint { margin-top: 14px; font-size: 12px; color: var(--dempet); }
+
+@keyframes opp {
+  from { transform: scale(0.82) translateY(14px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ferdigkort { animation: none; }
+  .fremdrift > div { transition: none; }
+}

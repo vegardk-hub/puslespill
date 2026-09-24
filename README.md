@@ -3,10 +3,10 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen (neon), og egne bilder fra iPaden kommer i fase 6.
 
-**Status: fase 0–2 ferdig, pluss motivgeneratorene fra fase 5.** Motoren
-kutter og tegner puslespill opptil ~500 brikker, brettet kan zoomes og
-panoreres, og det finnes sju motivtyper. Brikkene kan ennå ikke dras —
-det er fase 3.
+**Status: fase 0–3 ferdig, pluss motivgeneratorene fra fase 5.**
+Puslespillet er spillbart: brikkene dras, kobler seg sammen i grupper og
+fester seg på brettet. Neste steg er fase 4 – brikkeskuff, lasso og
+sorteringsfiltre.
 
 ## Kjøre lokalt
 
@@ -26,13 +26,51 @@ js/core/puzzle.js   Puslespillmodellen. Rene data, vet ingenting om tegning.
 js/render/atlas.js  Forhåndstegner hver brikke én gang med skygge og bevel.
 js/render/camera.js Pan/zoom i verdenskoordinater.
 js/render/renderer.js  Tegner bare når noe har endret seg.
-js/input/gester.js  Pointer Events: panorering og pinch-zoom.
+js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping.
+js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
+js/lyd.js           Lyd laget med oscillatorer. Ingen lydfiler.
 js/art/neon.js      Flow field + lagvis glød. Motivene er laget for å PUSLES.
 js/art/noise.js     Verdistøy.
 js/art/tegning.js   Tegneverktøykasse: taperte bånd, former, puslbarhetsmåling.
 js/art/scener.js    De figurative motivene – dinosaur, hus, bil, rakett, båt, katt.
 js/art/motiver.js   Registeret over alle motivtyper.
 ```
+
+## Slik spilles det
+
+| Gest | Handling |
+|---|---|
+| Én finger på en brikke | Dra brikken og alt som henger på den |
+| Én finger på tomt bord | Flytt bordet |
+| To fingre | Zoom og flytt bordet |
+| Dobbelttrykk på tomt bord | Veksle mellom oversikt og arbeidsvisning |
+
+Legger du ned en finger nummer to mens du drar, slippes brikken der den er
+og zoomen tar over. Det er mer forutsigbart enn å forsøke begge deler.
+
+### Snapping
+
+To ting kan feste seg: en brikke til en nabobrikke, og en gruppe til sin
+rette plass på brettet. Det siste kan slås av med «Fest til brettet» for den
+som synes det blir for enkelt.
+
+Toleransen sikter mot **26 skjermpiksler**, men aldri mer enn 42 % eller
+mindre enn 12 % av brikkestørrelsen. Poenget med å måle i skjermpiksler er
+at det skal føles likt uansett hvor langt inn du har zoomet.
+
+Én kobling kan utløse flere. Legger du en brikke mellom to grupper, festes
+begge i samme slipp – logikken leter videre i opptil seks runder.
+
+### Treffdeteksjon
+
+Baklengs gjennom tegnerekkefølgen, boksprøve først og så `isPointInPath` mot
+brikkens egen Path2D. Bommer fingeren, letes det i to ringer rundt punktet.
+Ingen brikke skal kunne gjemme seg for en litt upresis finger.
+
+Planen nevnte spatial hashing her. Det viste seg unødvendig: treffprøving
+skjer bare ved `pointerdown`, og snapping slår bare opp en brikkes fire
+naboer i rutenettet. 500 boksprøver ved hvert fingertrykk koster ingenting.
+Enklere er bedre.
 
 ## Motiv
 
@@ -94,7 +132,19 @@ Full opptegning av alle brikker, desktop (Chromium, dpr 1.5):
 | 504 | 32,9 MB | 3 | 0,82 ms |
 
 Bygging av et nytt puslespill (motiv + kutt + atlas) tar 200–330 ms.
+Dragning av en gruppe på 12 brikker tegner på 0,7 ms.
 **Tallene må måles på nytt på ekte iPad.**
+
+## Testet
+
+15 automatiske sjekker av spillogikken kjører mot den bygde appen: kobling
+innenfor og utenfor toleranse, eksakt plassering etter snapping, kaskade
+mellom to grupper, at en gruppe flytter seg samlet, låsing mot brettet,
+treffdeteksjon med og uten slakk, og full gjennomspilling til ferdig.
+
+I tillegg er hele berøringskjeden verifisert med ekte pointer events:
+en brikke ble dratt 18 piksler bom og smatt eksakt på plass, og panorering
+på tomt bord flyttet kameraet uten å røre en eneste brikke.
 
 ## Ikke verifisert ennå
 

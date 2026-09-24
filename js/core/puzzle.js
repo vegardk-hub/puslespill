@@ -41,12 +41,15 @@ export function lagPuslespill(bilde, onsketAntall, opts = {}) {
         path: outlineToPath2D(omriss),
         bbox,
         gruppe: r * cols + c,
-        plassert: false,
+        // Forskyvning som animeres mot null nar en brikke smetter pa plass.
+        animX: 0,
+        animY: 0,
+        laast: false,
       });
     }
   }
 
-  return {
+  const modell = {
     seed,
     kuttstil,
     cols,
@@ -58,9 +61,28 @@ export function lagPuslespill(bilde, onsketAntall, opts = {}) {
     brikkeH,
     bilde,
     brikker,
+    /** gruppeId -> Set av brikke-id. En gruppe flyttes som en enhet. */
+    grupper: new Map(),
+    /** Tegnerekkefolge. Siste element ligger overst. */
+    rekkefolge: brikker.map((b) => b.id),
     /** Puslespillets ramme i verdenskoordinater. */
     ramme: { x: 0, y: 0, w: bilde.bredde, h: bilde.hoyde },
   };
+  nullstillGrupper(modell);
+  return modell;
+}
+
+/** Hver brikke i sin egen gruppe. */
+export function nullstillGrupper(puslespill) {
+  puslespill.grupper.clear();
+  for (const b of puslespill.brikker) {
+    b.gruppe = b.id;
+    b.laast = false;
+    b.animX = 0;
+    b.animY = 0;
+    puslespill.grupper.set(b.id, new Set([b.id]));
+  }
+  puslespill.rekkefolge = puslespill.brikker.map((b) => b.id);
 }
 
 /** Naboer i rutenettet - grunnlaget for snapping i fase 3. */
@@ -95,14 +117,20 @@ export function spreBrikker(puslespill, bord) {
       b.x = rng.range(bord.x + m, bord.x + bord.w - m);
       b.y = rng.range(puslespill.ramme.h + m * 0.2, bord.y + bord.h - m);
     }
-    b.gruppe = b.id;
   }
+  nullstillGrupper(puslespill);
 }
 
+/** Legger alt ferdig sammensatt - brukes til a se motivet. */
 export function samleBrikker(puslespill) {
+  nullstillGrupper(puslespill);
+  const alle = new Set(puslespill.brikker.map((b) => b.id));
+  puslespill.grupper.clear();
+  puslespill.grupper.set(0, alle);
   for (const b of puslespill.brikker) {
     b.x = b.hjemX;
     b.y = b.hjemY;
     b.gruppe = 0;
+    b.laast = true;
   }
 }
