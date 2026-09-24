@@ -321,3 +321,108 @@ body.panel-skjult #panel-veksle { transform: rotate(180deg); }
 }
 
 .filterknapp.aktiv b { color: #fff; }
+
+/* --- Mine bilder --- */
+.galleri[hidden] { display: none; }
+
+#minebilder-liste {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+#minebilder-liste::-webkit-scrollbar { display: none; }
+
+.bildekort {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 50px;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 0;
+}
+
+.bildekort img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bildekort.aktiv {
+  outline: 2px solid var(--neon);
+  outline-offset: 1px;
+}
+
+.bildekort .slett {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  line-height: 1;
+  font-size: 15px;
+  border-radius: 50%;
+  background: rgba(7, 7, 14, 0.82);
+  border-color: rgba(255, 120, 150, 0.5);
+  color: #ff8a9c;
+}
+
+/* --- Beskjæring --- */
+#beskjaer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(7, 7, 14, 0.96);
+  z-index: 7;
+}
+
+#beskjaer[hidden] { display: none; }
+
+.beskjaer-topp,
+.beskjaer-bunn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
+.beskjaer-bunn {
+  padding-top: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.beskjaer-topp strong { letter-spacing: 0.04em; }
+.beskjaer-bunn #beskjaer-ok { margin-left: auto; }
+
+#beskjaer-lerret {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  display: block;
+  touch-action: none;
+}
+
+.varsel {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #ffd98a;
+  background: rgba(255, 190, 60, 0.10);
+  border: 1px solid rgba(255, 190, 60, 0.32);
+  border-radius: 9px;
+}
+
+.varsel[hidden] { display: none; }

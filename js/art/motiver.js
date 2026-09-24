@@ -6,6 +6,7 @@
 
 import { makeRng } from '../core/rng.js';
 import { genererNeon } from './neon.js';
+import { genererEget, harEgetBilde } from './eget.js';
 import { SCENER, genererScene } from './scener.js';
 import { malPuslbarhet } from './tegning.js';
 
@@ -26,6 +27,20 @@ for (const [nokkel, scene] of Object.entries(SCENER)) {
   };
 }
 
+// Eget bilde ligger alltid i registeret, men dukker bare opp i
+// grensesnittet nar det faktisk finnes et bilde a bruke.
+MOTIVER.eget = {
+  navn: 'Eget bilde',
+  gruppe: 'Mitt',
+  krever: harEgetBilde,
+  generer: (b, h) => genererEget(b, h),
+};
+
+/** Motiv som kan velges akkurat na. */
+export function tilgjengeligeMotiv() {
+  return Object.entries(MOTIVER).filter(([, m]) => !m.krever || m.krever());
+}
+
 export const MOTIVNOKLER = Object.keys(MOTIVER);
 
 /**
@@ -35,7 +50,7 @@ export const MOTIVNOKLER = Object.keys(MOTIVER);
 export function genererMotiv(nokkel, bredde, hoyde, seed, opts = {}) {
   let valgt = nokkel;
   if (valgt === 'tilfeldig') {
-    valgt = makeRng(seed + ':motivvalg').pick(MOTIVNOKLER);
+    valgt = makeRng(seed + ':motivvalg').pick(tilgjengeligeMotiv().map(([n]) => n));
   }
   const motiv = MOTIVER[valgt];
   if (!motiv) throw new Error('Ukjent motiv: ' + nokkel);

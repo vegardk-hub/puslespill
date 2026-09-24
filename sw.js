@@ -8,7 +8,7 @@
 // cachen. Det brakk appen i praksis. Nå hentes filene fra nettet når det
 // finnes, og fra cachen når det ikke gjør det.
 
-const CACHE = 'puslespill-v5';
+const CACHE = 'puslespill-v6';
 const NETT_FRIST_MS = 2500;
 
 const SKALL = [
@@ -32,8 +32,11 @@ const SKALL = [
   './js/render/renderer.js',
   './js/input/gester.js',
   './js/ui/skuff.js',
+  './js/ui/beskjaer.js',
+  './js/lagring.js',
   './js/art/noise.js',
   './js/art/neon.js',
+  './js/art/eget.js',
   './js/art/tegning.js',
   './js/art/scener.js',
   './js/art/motiver.js',

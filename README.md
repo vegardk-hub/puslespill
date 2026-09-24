@@ -1,12 +1,11 @@
 # Puslespill
 
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
-Motivene genereres i appen (neon), og egne bilder fra iPaden kommer i fase 6.
+Motivene genereres i appen, eller du bruker dine egne bilder.
 
-**Status: fase 0–4 ferdig, pluss motivgeneratorene fra fase 5.**
-Puslespillet er spillbart, og brikkene lar seg finne: skuff med filtre,
-lasso for å flytte hauger, og opprydning i rutenett. Neste steg er fase 6 –
-egne bilder fra iPaden.
+**Status: fase 0–6 ferdig.** Puslespillet er spillbart, brikkene lar seg
+finne, og du kan bruke dine egne bilder. Neste steg er fase 7 –
+vanskelighetssystemet.
 
 ## Kjøre lokalt
 
@@ -29,6 +28,9 @@ js/render/renderer.js  Tegner bare når noe har endret seg.
 js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping.
 js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
 js/ui/skuff.js      Brikkeskuffen: register over løse brikker, med filtre.
+js/ui/beskjaer.js   Beskjæring av egne bilder, og lesing av bildefiler.
+js/art/eget.js      Eget bilde som motivkilde.
+js/lagring.js       IndexedDB. Bildene blir liggende på iPaden.
 js/lyd.js           Lyd laget med oscillatorer. Ingen lydfiler.
 js/art/neon.js      Flow field + lagvis glød. Motivene er laget for å PUSLES.
 js/art/noise.js     Verdistøy.
@@ -103,6 +105,35 @@ bildet ville røpet løsningen, og opprydning skal flytte haugen minst mulig.
 **Lasso**: hold fingeren på tomt bord og dra. Brikkene innenfor blir valgt
 og kan flyttes samlet. Et utvalg kobler seg ikke sammen av seg selv – det
 skal kunne skyves til side uten at noe fester seg.
+
+## Egne bilder
+
+Trykk «Eget bilde …» for å velge fra Bilder, ta et nytt, eller hente fra
+Filer. Bildet beskjæres, lagres på iPaden og blir et puslespill.
+
+**Rammen står stille, bildet flyttes bak den.** Samme grep som i
+kameraappen: du slipper å treffe små håndtak i hjørnene, og rammen kan
+aldri havne utenfor bildet. Bildet holdes alltid stort nok til å dekke
+rammen, så et puslespill kan ikke få gjennomsiktige felter.
+
+**Sideforholdet følger bildet, ikke omvendt.** Velger du stående format,
+blir puslespillet stående – et portrett skal ikke strekkes for å passe inn
+i en liggende ramme. Rutenettløseren håndterer alle sideforhold, så
+brikkene blir like firkantede uansett.
+
+**EXIF-rotasjon** er den klassiske fellen: et bilde tatt med iPaden stående
+ser riktig ut i Bilder, men ligger sidelengs i pikslene. Filen leses med
+`createImageBitmap(fil, { imageOrientation: 'from-image' })`, med en
+`<img>`-variant som reserve. Testet med en JPEG merket orientation = 6:
+400 × 200 leses som 200 × 400.
+
+**Advarsel om flate bilder.** Puslbarheten måles på utsnittet mens du
+beskjærer. Under 45 % kommer en advarsel, under 30 % en tydeligere en. Et
+bilde av snø og himmel gir 20 % – og da er det bedre å vite det før man har
+lagt 200 brikker.
+
+**Bildene forlater aldri iPaden.** De lagres som blober i IndexedDB. Appen
+har ingen server å sende dem til.
 
 ## Motiv
 
@@ -194,10 +225,15 @@ brikker, at lasso velger riktig, at et utvalg flytter seg samlet, og at
 opprydning ved 54, 204 og 504 brikker gir null overlapp, ingenting oppå
 rammen og ingenting utenfor bordet.
 
+Egne bilder: EXIF-rotasjon med en konstruert JPEG, at bildet overlever en
+omlasting, at sideforholdet følger bildet i både liggende og stående format,
+at forrige bilde faktisk slippes fra minnet ved bytte, og at sletting virker.
+
 I tillegg er hele berøringskjeden verifisert med ekte pointer events:
 en brikke ble dratt 18 piksler bom og smatt eksakt på plass, panorering på
 tomt bord flyttet kameraet uten å røre en eneste brikke, en brikke ble
-løftet ut av skuffen og opp på bordet, og båndet rullet sidelengs.
+løftet ut av skuffen og opp på bordet, båndet rullet sidelengs, og et bilde
+gikk hele veien fra filvelger via beskjæring til ferdig puslespill.
 
 ## Ikke verifisert ennå
 

@@ -7,7 +7,11 @@ import { Kamera } from './render/camera.js';
 import { Tegner, MAKS_LOFT } from './render/renderer.js';
 import { Gester } from './input/gester.js';
 import { Skuff, FARGEBOTTER } from './ui/skuff.js';
-import { genererMotiv, MOTIVER } from './art/motiver.js';
+import { genererMotiv, MOTIVER, tilgjengeligeMotiv } from './art/motiver.js';
+import { settAktivtBilde, hentAktivtBilde } from './art/eget.js';
+import { Beskjaerer, lesBildefil } from './ui/beskjaer.js';
+import { malPuslbarhet } from './art/tegning.js';
+import * as lagring from './lagring.js';
 import { PALETTES } from './art/palettes.js';
 import * as lyd from './lyd.js';
 
@@ -39,6 +43,9 @@ let klokke = 0;
 let visHeleBordet = false;
 let skuffTrykk = null;
 let lassoFra = null;
+let beskjaerer = null;
+let venterBilde = null;
+let mineBilder = [];
 
 /**
  * Bordet må være stort nok til at alle brikkene får plass rundt rammen,
@@ -520,22 +527,181 @@ $('#panel-veksle').addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Egne bilder
+// ---------------------------------------------------------------------------
+
+function lerretTilBlob(lerret, type = 'image/jpeg', kvalitet = 0.88) {
+  return new Promise((ok) => lerret.toBlob((b) => ok(b), type, kvalitet));
+}
+
+function lagMiniatyr(lerret, bredde = 148) {
+  const h = Math.max(1, Math.round((bredde * lerret.height) / lerret.width));
+  const m = document.createElement('canvas');
+  m.width = bredde;
+  m.height = h;
+  m.getContext('2d').drawImage(lerret, 0, 0, bredde, h);
+  return m.toDataURL('image/jpeg', 0.72);
+}
+
+function apneBeskjaering(bilde, navn) {
+  venterBilde = { bilde, navn };
+  $('#beskjaer').hidden = false;
+  if (!beskjaerer) beskjaerer = new Beskjaerer($('#beskjaer-lerret'));
+  // Lerretet hadde ingen størrelse mens vinduet var skjult.
+  requestAnimationFrame(() => {
+    beskjaerer.tilpassStorrelse();
+    beskjaerer.settBilde(bilde);
+  });
+}
+
+function lukkBeskjaering() {
+  $('#beskjaer').hidden = true;
+  $('#beskjaer-varsel').hidden = true;
+  venterBilde = null;
+}
+
+/**
+ * Setter et bilde som aktivt motiv.
+ * Sideforholdet følger bildet, ikke omvendt – et stående bilde skal ikke
+ * bli strukket for å passe inn i et liggende puslespill.
+ */
+function brukBilde(lerret, navn, id) {
+  settAktivtBilde({ lerret, navn, id });
+  tilstand.sideforhold = lerret.width / lerret.height;
+  tilstand.motiv = 'eget';
+  byggMotivvelger();
+  oppdaterPalettTilgang();
+  oppdaterMineBilder();
+  return byggNytt({ nyttMotiv: true });
+}
+
+async function lagreOgBruk() {
+  if (!venterBilde || !beskjaerer) return;
+  const lerret = beskjaerer.resultat(2048);
+  const navn = venterBilde.navn;
+  lukkBeskjaering();
+
+  const id = lagring.nyId();
+  try {
+    const blob = await lerretTilBlob(lerret);
+    await lagring.lagreBilde({
+      id, navn, laget: Date.now(), blob,
+      miniatyr: lagMiniatyr(lerret),
+      bredde: lerret.width, hoyde: lerret.height,
+    });
+    mineBilder = await lagring.hentBilder();
+  } catch {
+    // Blokkert lagring skal ikke hindre at bildet brukes nå.
+  }
+  await brukBilde(lerret, navn, id);
+}
+
+async function velgLagret(post) {
+  try {
+    const bilde = await createImageBitmap(post.blob);
+    await brukBilde(bilde, post.navn, post.id);
+  } catch {
+    /* ignorer */
+  }
+}
+
+function oppdaterMineBilder() {
+  const rad = $('#minebilder');
+  rad.hidden = mineBilder.length === 0;
+  const aktiv = hentAktivtBilde();
+  $('#minebilder-liste').innerHTML = mineBilder.map((b) => `
+    <button class="bildekort${aktiv && aktiv.id === b.id ? ' aktiv' : ''}" data-bilde="${b.id}"
+            title="${(b.navn || 'Bilde').replace(/"/g, '')}">
+      <img src="${b.miniatyr}" alt="">
+      <span class="slett" role="button" data-slett="${b.id}" aria-label="Slett bildet">&times;</span>
+    </button>`).join('');
+}
+
+/** Advarer for bilder som blir kjedelige å pusle. */
+function varsleOmFlateFelt(lerret) {
+  const ctx = lerret.getContext('2d', { willReadFrequently: true });
+  const { score } = malPuslbarhet(ctx, lerret.width, lerret.height);
+  const v = $('#beskjaer-varsel');
+  if (score >= 45) { v.hidden = true; return score; }
+  v.hidden = false;
+  v.textContent = score < 30
+    ? `Dette utsnittet har svært store ensfargede felter (puslbarhet ${score} %). Mange brikker blir nesten umulige å plassere – prøv et tettere utsnitt, eller hold deg til få brikker.`
+    : `Dette utsnittet har en del ensfargede felter (puslbarhet ${score} %). Det blir hardt med mange brikker.`;
+  return score;
+}
+
+$('#velgbilde').addEventListener('click', () => $('#bildefil').click());
+
+$('#bildefil').addEventListener('change', async (e) => {
+  const fil = e.target.files && e.target.files[0];
+  e.target.value = '';                       // så samme fil kan velges igjen
+  if (!fil) return;
+  $('#laster').hidden = false;
+  $('#laster-tekst').textContent = 'Leser bildet …';
+  try {
+    const bilde = await lesBildefil(fil);
+    apneBeskjaering(bilde, fil.name.replace(/\.[^.]+$/, ''));
+  } catch {
+    $('#status').textContent = 'Klarte ikke å lese bildet. Prøv et annet format.';
+  } finally {
+    $('#laster').hidden = true;
+  }
+});
+
+$('#beskjaer-format').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-aspekt]');
+  if (!k || !beskjaerer) return;
+  for (const b of $('#beskjaer-format').children) b.classList.toggle('aktiv', b === k);
+  beskjaerer.settAspekt(Number(k.dataset.aspekt));
+  varsleOmFlateFelt(beskjaerer.resultat(560));
+});
+
+$('#beskjaer-lerret').addEventListener('pointerup', () => {
+  if (beskjaerer && venterBilde) varsleOmFlateFelt(beskjaerer.resultat(560));
+});
+
+$('#beskjaer-avbryt').addEventListener('click', lukkBeskjaering);
+$('#beskjaer-ok').addEventListener('click', lagreOgBruk);
+
+$('#minebilder-liste').addEventListener('click', async (e) => {
+  const slett = e.target.closest('[data-slett]');
+  if (slett) {
+    e.stopPropagation();
+    await lagring.slettBilde(slett.dataset.slett).catch(() => {});
+    mineBilder = await lagring.hentBilder().catch(() => mineBilder);
+    oppdaterMineBilder();
+    return;
+  }
+  const kort = e.target.closest('[data-bilde]');
+  if (!kort) return;
+  const post = mineBilder.find((b) => b.id === kort.dataset.bilde);
+  if (post) velgLagret(post);
+});
+
+// ---------------------------------------------------------------------------
 // Oppstart
 // ---------------------------------------------------------------------------
 
 const motivVelger = $('#motiv');
-const grupper = new Map();
-for (const [n, m] of Object.entries(MOTIVER)) {
-  if (!grupper.has(m.gruppe)) {
-    const g = document.createElement('optgroup');
-    g.label = m.gruppe;
-    grupper.set(m.gruppe, g);
-    motivVelger.append(g);
+
+function byggMotivvelger() {
+  const valgt = tilstand.motiv;
+  motivVelger.innerHTML = '<option value="tilfeldig">Tilfeldig</option>';
+  const grupper = new Map();
+  for (const [n, m] of tilgjengeligeMotiv()) {
+    if (!grupper.has(m.gruppe)) {
+      const g = document.createElement('optgroup');
+      g.label = m.gruppe;
+      grupper.set(m.gruppe, g);
+      motivVelger.append(g);
+    }
+    const o = document.createElement('option');
+    o.value = n;
+    o.textContent = m.navn;
+    grupper.get(m.gruppe).append(o);
   }
-  const o = document.createElement('option');
-  o.value = n;
-  o.textContent = m.navn;
-  grupper.get(m.gruppe).append(o);
+  motivVelger.value = valgt;
+  if (!motivVelger.value) motivVelger.value = 'tilfeldig';
 }
 
 /** Palettvalget gjelder bare neon – de figurative scenene har egne farger. */
@@ -562,7 +728,7 @@ window.__puslespill = {
   tegner, kamera, tilstand, byggNytt, settAntall, toleranse, skuff, oppdaterSkuff,
 };
 
-motivVelger.value = tilstand.motiv;
+byggMotivvelger();
 oppdaterPalettTilgang();
 $('#fest').classList.toggle('aktiv', tilstand.festTilBrett);
 $('#lydknapp').classList.toggle('aktiv', tilstand.lyd);
@@ -570,6 +736,10 @@ $('#skuffknapp').classList.toggle('aktiv', skuff.apen);
 settAntall(100);
 tilpassCanvas();
 byggNytt();
+
+lagring.hentBilder()
+  .then((liste) => { mineBilder = liste; oppdaterMineBilder(); })
+  .catch(() => {});
 
 if ('serviceWorker' in navigator) {
   // Fantes det allerede en service worker da siden lastet, betyr et bytte at

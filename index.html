@@ -52,6 +52,13 @@
       <select id="motiv" aria-label="Motivtype">
         <option value="tilfeldig">Tilfeldig</option>
       </select>
+      <button id="velgbilde">Eget bilde &hellip;</button>
+      <input id="bildefil" type="file" accept="image/*" hidden>
+    </div>
+
+    <div class="rad galleri" id="minebilder" hidden>
+      <span class="etikett">Mine</span>
+      <div id="minebilder-liste"></div>
     </div>
 
     <div class="rad">
@@ -97,6 +104,23 @@
 <div id="laster" hidden>
   <div class="spinner"></div>
   <p id="laster-tekst">Tegner motiv …</p>
+</div>
+
+<div id="beskjaer" hidden>
+  <div class="beskjaer-topp">
+    <strong>Beskjær bildet</strong>
+    <div class="chips" id="beskjaer-format">
+      <button data-aspekt="1.5" class="aktiv">Liggende</button>
+      <button data-aspekt="1">Kvadrat</button>
+      <button data-aspekt="0.6667">Stående</button>
+    </div>
+  </div>
+  <canvas id="beskjaer-lerret"></canvas>
+  <div class="beskjaer-bunn">
+    <p id="beskjaer-varsel" class="varsel" hidden></p>
+    <button id="beskjaer-avbryt">Avbryt</button>
+    <button id="beskjaer-ok" class="primar">Bruk bildet</button>
+  </div>
 </div>
 
 <div id="ferdig" hidden>
