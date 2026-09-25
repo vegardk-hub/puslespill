@@ -110,11 +110,28 @@ function velgBildestorrelse(antall, sideforhold) {
 // Bygge nytt puslespill
 // ---------------------------------------------------------------------------
 
+/**
+ * Gir nettleseren en sjanse til a tegne lasteskjermen for vi blokkerer
+ * traden med a generere motiv og kutte brikker.
+ *
+ * requestAnimationFrame alene duger ikke: den fyrer ikke i en skjult fane.
+ * Uten tidsfristen ville appen bli staende bak lasteskjermen for alltid om
+ * man bygger et puslespill og bytter bort fra fanen i samme oyeblikk.
+ */
+function laLasteskjermenVises() {
+  return new Promise((ferdig) => {
+    let gjort = false;
+    const en_gang = () => { if (!gjort) { gjort = true; ferdig(); } };
+    requestAnimationFrame(() => requestAnimationFrame(en_gang));
+    setTimeout(en_gang, 80);
+  });
+}
+
 async function byggNytt({ nyttMotiv = true } = {}) {
   $('#laster').hidden = false;
   $('#laster-tekst').textContent = nyttMotiv ? 'Tegner motiv …' : 'Kutter brikker …';
   $('#ferdig').hidden = true;
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await laLasteskjermenVises();
 
   const t0 = performance.now();
   const mal = velgBildestorrelse(tilstand.onsketAntall, tilstand.sideforhold);
