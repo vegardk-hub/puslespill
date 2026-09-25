@@ -5,10 +5,17 @@
 // Strategien er nett først med kort tidsfrist, ikke cache først.
 // Cache først høres raskere ut, men gir én utdatert last etter hver
 // oppdatering: ny index.html fra nettet sammen med gammel JavaScript fra
-// cachen. Det brakk appen i praksis. Nå hentes filene fra nettet når det
-// finnes, og fra cachen når det ikke gjør det.
+// cachen. Det brakk appen i praksis.
+//
+// «Nett først» er heller ikke nok alene. En vanlig fetch går gjennom
+// nettleserens egen HTTP-cache, og GitHub Pages sender max-age=600. Da kan
+// en fersk service worker rekke å legge ti minutter gammel JavaScript i
+// cachen sin. Derfor hentes skallet med cache: 'reload' ved installasjon,
+// og alt annet med cache: 'no-cache', som tvinger en revalidering mot
+// serveren. Kostnaden er en 304, og gevinsten er at filene alltid følger
+// hverandre.
 
-const CACHE = 'puslespill-v7';
+const CACHE = 'puslespill-v8';
 const NETT_FRIST_MS = 2500;
 
 const SKALL = [
@@ -44,12 +51,17 @@ const SKALL = [
   './js/art/palettes.js',
 ];
 
+async function forhandslast() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(SKALL.map(async (url) => {
+    // cache: 'reload' går utenom nettleserens HTTP-cache helt.
+    const svar = await fetch(new Request(url, { cache: 'reload' }));
+    if (svar.ok) await cache.put(url, svar);
+  }));
+}
+
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then((c) => c.addAll(SKALL))
-      .then(() => self.skipWaiting())
-  );
+  e.waitUntil(forhandslast().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -64,7 +76,7 @@ async function nettForst(req) {
   const cache = await caches.open(CACHE);
   try {
     const svar = await Promise.race([
-      fetch(req),
+      fetch(req, { cache: 'no-cache' }),
       new Promise((_, avvis) => setTimeout(() => avvis(new Error('treg')), NETT_FRIST_MS)),
     ]);
     if (svar && svar.ok) cache.put(req, svar.clone());
