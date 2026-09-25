@@ -45,6 +45,12 @@
     <div class="rad resultat">
       <strong id="brikketall">—</strong>
       <span id="alternativer"></span>
+      <span id="vanskemerke" class="vanskemerke">—</span>
+    </div>
+
+    <div class="rad">
+      <span class="etikett">Nivå</span>
+      <div class="chips" id="oppsett"></div>
     </div>
 
     <div class="rad">
@@ -83,6 +89,13 @@
     </div>
 
     <div class="rad">
+      <button id="rotasjon" aria-pressed="false">Roter brikker</button>
+      <button id="kanterforst" aria-pressed="false">Kanter først</button>
+      <button id="bildeknapp" aria-pressed="false">Vis bildet</button>
+      <span id="hjelpetekst" class="hjelpetekst"></span>
+    </div>
+
+    <div class="rad">
       <button id="nytt" class="primar">Nytt motiv</button>
       <button id="stokk">Stokk</button>
       <button id="rydd">Rydd</button>
@@ -96,6 +109,11 @@
     <p id="status" class="status">—</p>
   </div>
 </header>
+
+<div id="forhandsvisning" hidden>
+  <canvas id="forhandsvisning-lerret"></canvas>
+  <button id="forhandsvisning-storre" aria-label="Bytt størrelse">&#8597;</button>
+</div>
 
 <div id="skufflinje">
   <div id="skufffiltre" role="group" aria-label="Sorter brikkene i skuffen"></div>

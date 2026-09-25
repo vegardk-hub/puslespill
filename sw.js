@@ -8,7 +8,7 @@
 // cachen. Det brakk appen i praksis. Nå hentes filene fra nettet når det
 // finnes, og fra cachen når det ikke gjør det.
 
-const CACHE = 'puslespill-v6';
+const CACHE = 'puslespill-v7';
 const NETT_FRIST_MS = 2500;
 
 const SKALL = [
@@ -27,6 +27,7 @@ const SKALL = [
   './js/core/shape.js',
   './js/core/puzzle.js',
   './js/core/spill.js',
+  './js/core/vanskelighet.js',
   './js/render/atlas.js',
   './js/render/camera.js',
   './js/render/renderer.js',

@@ -2,6 +2,8 @@ import { randomSeed } from './core/rng.js';
 import { solveGrid, describeGrid } from './core/grid.js';
 import { lagPuslespill, spreBrikker, samleBrikker, ryddBrikker } from './core/puzzle.js';
 import { Spill, formaterTid } from './core/spill.js';
+import { regnVanskelighet, OPPSETT } from './core/vanskelighet.js';
+import { erKantbrikke } from './ui/skuff.js';
 import { byggAtlas } from './render/atlas.js';
 import { Kamera } from './render/camera.js';
 import { Tegner, MAKS_LOFT } from './render/renderer.js';
@@ -32,6 +34,9 @@ const tilstand = {
   spokelse: 0.15,
   festTilBrett: true,
   lyd: true,
+  rotasjon: false,
+  kanterForst: false,
+  visBilde: false,
 };
 
 let puslespill = null;
@@ -127,8 +132,9 @@ async function byggNytt({ nyttMotiv = true } = {}) {
     tilstand.onsketAntall,
     { seed: tilstand.seed, kuttstil: tilstand.kuttstil });
   bord = regnBord(puslespill);
-  spreBrikker(puslespill, bord);
+  spreBrikker(puslespill, bord, tilstand.rotasjon);
   spill = new Spill(puslespill);
+  settKantmodus();
 
   atlas = byggAtlas(motiv.canvas, puslespill);
   const tAtlas = performance.now() - t1;
@@ -141,6 +147,9 @@ async function byggNytt({ nyttMotiv = true } = {}) {
 
   startKlokke();
   oppdaterStatus({ tMotiv, tAtlas });
+  oppdaterVanskelighet();
+  oppdaterHjelpetekst();
+  tegnForhandsvisning();
   oppdaterSkuff();
   oppdaterSpillstatus();
   $('#laster').hidden = true;
@@ -178,6 +187,19 @@ function animerKobling() {
   });
 }
 
+/** Dreier brikken mykt pa plass i stedet for a la den hoppe. */
+function animerDreining(brikke) {
+  const start = performance.now();
+  const varighet = 150;
+  const fra = brikke.animRot;
+  tegner.animer((na) => {
+    const t = Math.min(1, (na - start) / varighet);
+    const e = 1 - (1 - t) ** 3;
+    brikke.animRot = fra * (1 - e);
+    return t < 1;
+  });
+}
+
 function feire() {
   stoppKlokke();
   $('#ferdig-tekst').textContent =
@@ -192,8 +214,11 @@ function oppdaterSkuff() {
   skuff.oppdater(puslespill, spill);
   skuff.layout(canvas.clientWidth, canvas.clientHeight);
   byggFilterknapper();
-  $('#skufflinje').style.bottom = skuff.apen ? skuff.rekt.h + 'px' : '0px';
+  const bunn = skuff.apen ? skuff.rekt.h : 0;
+  $('#skufflinje').style.bottom = bunn + 'px';
   $('#skufflinje').hidden = !skuff.apen;
+  // Forhandsvisningen skal ligge over skuffen, ikke oppa den.
+  $('#forhandsvisning').style.bottom = (bunn + (skuff.apen ? 50 : 10)) + 'px';
   tegner.merkSkitten();
 }
 
@@ -303,10 +328,16 @@ new Gester(canvas, kamera, {
     if (tegner.dragGruppe) tegner.dragGruppe.anker = verden;
   },
 
-  onDragSlutt: (handtak) => {
+  onDragSlutt: (handtak, flyttet) => {
     tegner.dragGruppe = null;
     skuff.uteId = null;
     if (!handtak) return;
+    // Et trykk uten bevegelse dreier brikken. Deretter provers koblingen
+    // som vanlig, sa den siste dreiningen kan vare den som far den pa plass.
+    if (!handtak.utvalg && tilstand.rotasjon && flyttet < 9 && spill.drei(handtak.brikke)) {
+      animerDreining(handtak.brikke);
+      if (tilstand.lyd) lyd.loft();
+    }
     // Et utvalg flyttes bare - det skal ikke koble seg sammen av seg selv.
     if (handtak.utvalg) {
       if (tilstand.lyd) lyd.legg();
@@ -320,7 +351,9 @@ new Gester(canvas, kamera, {
     } else if (tilstand.lyd) {
       lyd.legg();
     }
+    settKantmodus();
     oppdaterSpillstatus();
+    oppdaterHjelpetekst();
     oppdaterSkuff();
     if (res.ferdig) feire();
   },
@@ -355,6 +388,100 @@ new Gester(canvas, kamera, {
     }
   },
 });
+
+// ---------------------------------------------------------------------------
+// Vanskelighetsgrad, kanter forst og forhandsvisning
+// ---------------------------------------------------------------------------
+
+/** Er kantrammen ferdig? Da slipper hjelpemodusen taket av seg selv. */
+function kanterIgjen() {
+  if (!puslespill || !spill) return 0;
+  return puslespill.brikker.filter((b) =>
+    erKantbrikke(b, puslespill) && !b.laast && spill.medlemmer(b.gruppe).size === 1).length;
+}
+
+function kantmodusAktiv() {
+  return tilstand.kanterForst && kanterIgjen() > 0;
+}
+
+/**
+ * Kanter forst holder midtbrikkene unna til rammen er lagt.
+ * Brikkene er ikke borte - de er bare ikke i veien enda.
+ */
+function settKantmodus() {
+  const test = (b) => kantmodusAktiv() && !erKantbrikke(b, puslespill);
+  spill.skjult = tilstand.kanterForst ? test : null;
+  tegner.skjult = tilstand.kanterForst ? test : null;
+}
+
+function oppdaterVanskelighet() {
+  if (!puslespill || !motiv) return;
+  const v = regnVanskelighet({
+    antall: puslespill.antall,
+    rotasjon: tilstand.rotasjon,
+    kuttstil: tilstand.kuttstil,
+    puslbarhet: motiv.meta.puslbarhet,
+    spokelse: tilstand.spokelse,
+    festTilBrett: tilstand.festTilBrett,
+    kanterForst: tilstand.kanterForst,
+  });
+  const m = $('#vanskemerke');
+  m.textContent = `${v.niva.navn} · ${v.score}`;
+  m.style.color = v.niva.farge;
+  return v;
+}
+
+function oppdaterHjelpetekst() {
+  const igjen = kanterIgjen();
+  $('#hjelpetekst').textContent = kantmodusAktiv()
+    ? `${igjen} kantbrikker igjen`
+    : '';
+}
+
+function tegnForhandsvisning() {
+  if (!motiv) return;
+  const c = $('#forhandsvisning-lerret');
+  const b = 420;
+  const h = Math.round((b * motiv.canvas.height) / motiv.canvas.width);
+  if (c.width !== b || c.height !== h) { c.width = b; c.height = h; }
+  c.getContext('2d').drawImage(motiv.canvas, 0, 0, b, h);
+}
+
+function brukOppsett(nokkel) {
+  const o = OPPSETT[nokkel];
+  if (!o) return;
+  tilstand.rotasjon = o.rotasjon;
+  tilstand.kuttstil = o.kuttstil;
+  tilstand.spokelse = o.spokelse;
+  tilstand.festTilBrett = o.festTilBrett;
+  tilstand.kanterForst = o.kanterForst;
+  settAntall(o.antall);
+  speilBrytere();
+  byggNytt({ nyttMotiv: false });
+}
+
+/** Lar knappene vise den tilstanden de faktisk styrer. */
+function speilBrytere() {
+  $('#kuttstil').value = tilstand.kuttstil;
+  $('#spokelse').value = Math.round(tilstand.spokelse * 100);
+  $('#fest').classList.toggle('aktiv', tilstand.festTilBrett);
+  $('#fest').setAttribute('aria-pressed', String(tilstand.festTilBrett));
+  $('#rotasjon').classList.toggle('aktiv', tilstand.rotasjon);
+  $('#rotasjon').setAttribute('aria-pressed', String(tilstand.rotasjon));
+  $('#kanterforst').classList.toggle('aktiv', tilstand.kanterForst);
+  $('#kanterforst').setAttribute('aria-pressed', String(tilstand.kanterForst));
+  $('#bildeknapp').classList.toggle('aktiv', tilstand.visBilde);
+  $('#lydknapp').classList.toggle('aktiv', tilstand.lyd);
+  $('#skuffknapp').classList.toggle('aktiv', skuff.apen);
+  tegner.spokelseStyrke = tilstand.spokelse;
+  for (const k of document.querySelectorAll('[data-oppsett]')) {
+    const o = OPPSETT[k.dataset.oppsett];
+    k.classList.toggle('aktiv',
+      o.antall === tilstand.onsketAntall && o.rotasjon === tilstand.rotasjon &&
+      o.kuttstil === tilstand.kuttstil && o.festTilBrett === tilstand.festTilBrett &&
+      o.kanterForst === tilstand.kanterForst);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Status
@@ -455,6 +582,7 @@ $('#motiv').addEventListener('change', (e) => {
 });
 $('#kuttstil').addEventListener('change', (e) => {
   tilstand.kuttstil = e.target.value;
+  speilBrytere();
   byggNytt({ nyttMotiv: false });
 });
 $('#palett').addEventListener('change', (e) => {
@@ -485,8 +613,9 @@ $('#skufffiltre').addEventListener('click', (e) => {
   oppdaterSkuff();
 });
 $('#stokk').addEventListener('click', () => {
-  spreBrikker(puslespill, bord);
+  spreBrikker(puslespill, bord, tilstand.rotasjon);
   spill = new Spill(puslespill);
+  settKantmodus();
   tegner.dragGruppe = null;
   tegner.utvalg = spill.utvalg;
   $('#ferdig').hidden = true;
@@ -507,11 +636,52 @@ $('#fasit').addEventListener('click', () => {
 $('#spokelse').addEventListener('input', (e) => {
   tilstand.spokelse = Number(e.target.value) / 100;
   tegner.spokelseStyrke = tilstand.spokelse;
+  oppdaterVanskelighet();
   tegner.merkSkitten();
 });
 $('#fest').addEventListener('click', () => {
   tilstand.festTilBrett = !tilstand.festTilBrett;
-  $('#fest').classList.toggle('aktiv', tilstand.festTilBrett);
+  speilBrytere();
+  oppdaterVanskelighet();
+});
+$('#rotasjon').addEventListener('click', () => {
+  tilstand.rotasjon = !tilstand.rotasjon;
+  speilBrytere();
+  oppdaterVanskelighet();
+  // Rotasjon ma deles ut pa nytt, sa brikkene faktisk star feil vei.
+  spreBrikker(puslespill, bord, tilstand.rotasjon);
+  spill = new Spill(puslespill);
+  settKantmodus();
+  tegner.dragGruppe = null;
+  tegner.utvalg = spill.utvalg;
+  startKlokke();
+  visHeleBordet = false;
+  tilpassVisning(arbeidsutsnitt());
+  oppdaterSkuff();
+  oppdaterHjelpetekst();
+  oppdaterSpillstatus();
+});
+$('#kanterforst').addEventListener('click', () => {
+  tilstand.kanterForst = !tilstand.kanterForst;
+  speilBrytere();
+  settKantmodus();
+  oppdaterVanskelighet();
+  oppdaterHjelpetekst();
+  oppdaterSkuff();
+  tegner.merkSkitten();
+});
+$('#bildeknapp').addEventListener('click', () => {
+  tilstand.visBilde = !tilstand.visBilde;
+  $('#forhandsvisning').hidden = !tilstand.visBilde;
+  if (tilstand.visBilde) tegnForhandsvisning();
+  speilBrytere();
+});
+$('#forhandsvisning-storre').addEventListener('click', () => {
+  $('#forhandsvisning').classList.toggle('stor');
+});
+$('#oppsett').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-oppsett]');
+  if (k) brukOppsett(k.dataset.oppsett);
 });
 $('#lydknapp').addEventListener('click', () => {
   tilstand.lyd = !tilstand.lyd;
@@ -728,12 +898,13 @@ window.__puslespill = {
   tegner, kamera, tilstand, byggNytt, settAntall, toleranse, skuff, oppdaterSkuff,
 };
 
+$('#oppsett').innerHTML = Object.entries(OPPSETT)
+  .map(([n, o]) => `<button data-oppsett="${n}">${o.navn}</button>`).join('');
+
 byggMotivvelger();
 oppdaterPalettTilgang();
-$('#fest').classList.toggle('aktiv', tilstand.festTilBrett);
-$('#lydknapp').classList.toggle('aktiv', tilstand.lyd);
-$('#skuffknapp').classList.toggle('aktiv', skuff.apen);
 settAntall(100);
+speilBrytere();
 tilpassCanvas();
 byggNytt();
 

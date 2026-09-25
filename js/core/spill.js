@@ -22,6 +22,9 @@ export class Spill {
     this.koblinger = 0;
     /** Brikker valgt med lasso. Flyttes samlet, men kobles ikke sammen. */
     this.utvalg = new Set();
+    /** Valgfri test: brikker den sier ja til er usynlige og uklikkbare. */
+    this.skjult = null;
+    this.dreininger = 0;
   }
 
   // --- Utvalg (lasso) ------------------------------------------------------
@@ -77,6 +80,31 @@ export class Spill {
 
   // --- Treffdeteksjon ------------------------------------------------------
 
+  /** Brikkens midtpunkt i verden - dreiepunktet for rotasjon. */
+  _midt(b) {
+    return {
+      x: b.x + b.bbox.x - b.hjemX + b.bbox.w / 2,
+      y: b.y + b.bbox.y - b.hjemY + b.bbox.h / 2,
+    };
+  }
+
+  /**
+   * Regner et punkt tilbake til brikkens egen, urotere ramme.
+   * Da kan bade boksproven og isPointInPath brukes uendret, uansett
+   * hvordan brikken star.
+   */
+  _avroter(b, v) {
+    if (!b.rot) return v;
+    const m = this._midt(b);
+    const a = (-b.rot * Math.PI) / 2;
+    const dx = v.x - m.x;
+    const dy = v.y - m.y;
+    return {
+      x: m.x + dx * Math.cos(a) - dy * Math.sin(a),
+      y: m.y + dx * Math.sin(a) + dy * Math.cos(a),
+    };
+  }
+
   _iBoks(b, v) {
     const x = b.bbox.x - b.hjemX + b.x;
     const y = b.bbox.y - b.hjemY + b.y;
@@ -93,7 +121,9 @@ export class Spill {
     for (let i = rekkefolge.length - 1; i >= 0; i--) {
       const b = brikker[rekkefolge[i]];
       if (b.laast) continue;
-      if (this._iBoks(b, v) && this._iForm(b, v)) return b;
+      if (this.skjult && this.skjult(b)) continue;
+      const lokal = this._avroter(b, v);
+      if (this._iBoks(b, lokal) && this._iForm(b, lokal)) return b;
     }
     return null;
   }
@@ -170,6 +200,24 @@ export class Spill {
     for (const id of this.medlemmer(gruppeId)) this.p.brikker[id].laast = true;
   }
 
+  /**
+   * Dreier en los brikke en kvart omdreining med klokka.
+   * Bare enkeltbrikker kan dreies. En gruppe har alltid rotasjon null,
+   * siden brikker bare kobler seg nar de star riktig vei - og da er det
+   * ingenting a dreie.
+   * @returns {boolean} om noe faktisk ble dreid
+   */
+  drei(brikke) {
+    if (!brikke || brikke.laast) return false;
+    if (this.medlemmer(brikke.gruppe).size > 1) return false;
+    brikke.rot = (brikke.rot + 1) % 4;
+    // Animasjonen gar fra forrige stilling til den nye.
+    brikke.animRot = -1;
+    this.dreininger++;
+    if (!this.startTid) this.startTid = performance.now();
+    return true;
+  }
+
   // --- Dragning ------------------------------------------------------------
 
   /** @returns {{gruppe:number, brikke:object}|null} */
@@ -192,6 +240,8 @@ export class Spill {
   _finnKobling(gruppeId, toleranse, festTilBrett) {
     const ids = [...this.medlemmer(gruppeId)];
     if (!ids.length) return null;
+    // En brikke som star feil vei kan ikke koble seg til noe.
+    if (ids.some((id) => this.p.brikker[id].rot !== 0)) return null;
 
     if (festTilBrett) {
       // En gruppe er stiv, så alle medlemmene har samme avvik fra hjemme.
@@ -205,7 +255,7 @@ export class Spill {
     for (const id of ids) {
       const b = this.p.brikker[id];
       for (const n of naboer(this.p, b)) {
-        if (n.gruppe === gruppeId) continue;
+        if (n.gruppe === gruppeId || n.rot !== 0) continue;
         // Der b måtte ligge for å passe med n.
         const dx = n.x + (b.hjemX - n.hjemX) - b.x;
         const dy = n.y + (b.hjemY - n.hjemY) - b.y;

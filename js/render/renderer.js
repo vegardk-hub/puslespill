@@ -30,6 +30,8 @@ export class Tegner {
     this.lasso = null;
     /** Set med brikke-id-er som er valgt med lasso. */
     this.utvalg = null;
+    /** Valgfri test: brikker den sier ja til tegnes ikke. */
+    this.skjult = null;
     /** Funksjoner som kjøres hver frame og selv sier om de er ferdige. */
     this.animatorer = new Set();
     this.sisteTegnet = 0;
@@ -145,12 +147,27 @@ export class Tegner {
   }
 
   _tegnEn(b, utsnitt, x1, y1) {
+    if (this.skjult && this.skjult(b)) return 0;
     const celle = this.atlas.celler[b.id];
     const dx = b.x + b.animX + celle.ox;
     const dy = b.y + b.animY + celle.oy;
     if (dx > x1 || dy > y1 || dx + celle.sw < utsnitt.x || dy + celle.sh < utsnitt.y) return 0;
-    this.ctx.drawImage(this.atlas.sider[celle.side], celle.sx, celle.sy, celle.sw, celle.sh,
-      dx, dy, celle.sw, celle.sh);
+    const side = this.atlas.sider[celle.side];
+    const rot = b.rot + b.animRot;
+    if (!rot) {
+      this.ctx.drawImage(side, celle.sx, celle.sy, celle.sw, celle.sh, dx, dy, celle.sw, celle.sh);
+      return 1;
+    }
+    // Dreier om brikkens eget midtpunkt, ikke om cellehjørnet.
+    const { ctx } = this;
+    const cx = dx + celle.sw / 2;
+    const cy = dy + celle.sh / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((rot * Math.PI) / 2);
+    ctx.translate(-cx, -cy);
+    ctx.drawImage(side, celle.sx, celle.sy, celle.sw, celle.sh, dx, dy, celle.sw, celle.sh);
+    ctx.restore();
     return 1;
   }
 
@@ -166,11 +183,27 @@ export class Tegner {
     for (const id of sett) {
       const b = puslespill.brikker[id];
       ctx.save();
-      ctx.translate(b.x + b.animX - b.hjemX, b.y + b.animY - b.hjemY);
+      this._settBrikkeramme(b);
       ctx.fill(b.path);
       ctx.restore();
     }
     ctx.restore();
+  }
+
+  /** Legger brikkens egen ramme paa konteksten, rotasjon inkludert. */
+  _settBrikkeramme(b) {
+    const { ctx } = this;
+    ctx.translate(b.x + b.animX - b.hjemX, b.y + b.animY - b.hjemY);
+    const rot = b.rot + b.animRot;
+    if (rot) {
+      // Konteksten star na i bildekoordinater, sa dreiepunktet er
+      // omrissets eget midtpunkt.
+      const cx = b.bbox.x + b.bbox.w / 2;
+      const cy = b.bbox.y + b.bbox.h / 2;
+      ctx.translate(cx, cy);
+      ctx.rotate((rot * Math.PI) / 2);
+      ctx.translate(-cx, -cy);
+    }
   }
 
   /** Lyser opp brikkene som er valgt med lasso. */
@@ -183,8 +216,9 @@ export class Tegner {
     ctx.lineJoin = 'round';
     for (const id of this.utvalg) {
       const b = puslespill.brikker[id];
+      if (this.skjult && this.skjult(b)) continue;
       ctx.save();
-      ctx.translate(b.x + b.animX - b.hjemX, b.y + b.animY - b.hjemY);
+      this._settBrikkeramme(b);
       ctx.stroke(b.path);
       ctx.restore();
     }

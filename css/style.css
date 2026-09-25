@@ -426,3 +426,61 @@ body.panel-skjult #panel-veksle { transform: rotate(180deg); }
 }
 
 .varsel[hidden] { display: none; }
+
+/* --- Vanskelighetsgrad --- */
+.vanskemerke {
+  margin-left: auto;
+  padding: 3px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 13px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.hjelpetekst {
+  font-size: 12px;
+  color: var(--dempet);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Forhåndsvisning --- */
+#forhandsvisning {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 6px;
+  background: rgba(10, 12, 24, 0.92);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--kant);
+  border-radius: 11px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+  z-index: 4;
+}
+
+#forhandsvisning[hidden] { display: none; }
+
+#forhandsvisning-lerret {
+  display: block;
+  border-radius: 6px;
+  width: 190px;
+  height: auto;
+}
+
+#forhandsvisning.stor #forhandsvisning-lerret { width: 340px; }
+
+#forhandsvisning-storre {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(10, 12, 24, 0.95);
+}

@@ -3,9 +3,9 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen, eller du bruker dine egne bilder.
 
-**Status: fase 0–6 ferdig.** Puslespillet er spillbart, brikkene lar seg
-finne, og du kan bruke dine egne bilder. Neste steg er fase 7 –
-vanskelighetssystemet.
+**Status: fase 0–7 ferdig.** Puslespillet er spillbart, brikkene lar seg
+finne, du kan bruke dine egne bilder, og vanskelighetsgraden kan stilles
+fra barnehage til beinhard. Neste steg er fase 8 – lagring og galleri.
 
 ## Kjøre lokalt
 
@@ -25,7 +25,8 @@ js/core/puzzle.js   Puslespillmodellen. Rene data, vet ingenting om tegning.
 js/render/atlas.js  Forhåndstegner hver brikke én gang med skygge og bevel.
 js/render/camera.js Pan/zoom i verdenskoordinater.
 js/render/renderer.js  Tegner bare når noe har endret seg.
-js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping.
+js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping, rotasjon.
+js/core/vanskelighet.js  Regner alle innstillingene om til ett tall.
 js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
 js/ui/skuff.js      Brikkeskuffen: register over løse brikker, med filtre.
 js/ui/beskjaer.js   Beskjæring av egne bilder, og lesing av bildefiler.
@@ -77,6 +78,52 @@ Planen nevnte spatial hashing her. Det viste seg unødvendig: treffprøving
 skjer bare ved `pointerdown`, og snapping slår bare opp en brikkes fire
 naboer i rutenettet. 500 boksprøver ved hvert fingertrykk koster ingenting.
 Enklere er bedre.
+
+## Vanskelighetsgrad
+
+Brikketallet alene sier lite. Hundre brikker av en skarp tegning med
+spøkelsesbilde under er en helt annen oppgave enn hundre brikker av en blå
+himmel, roterte, uten hjelp. Appen regner alt sammen til ett tall og viser
+det som et merke: **Lett · Middels · Krevende · Vanskelig · Beinhard**.
+
+Grunnlaget er brikketallet på logaritmisk skala – spranget fra 12 til 24
+brikker kjennes like stort som fra 250 til 500. Så ganges det opp for
+rotasjon (×1,38), kuttstil, og hvor flatt motivet er. Hjelpemidlene trekker
+ned: spøkelsesbilde, feste til brettet, kanter først.
+
+Fem ferdige oppsett stiller alle bryterne samtidig, fra **Barn**
+(24 brikker, ingen rotasjon, kraftig spøkelsesbilde) til **Beinhard**
+(500 brikker, rotasjon, kaotisk kutt, ingen hjelp).
+
+### Rotasjon
+
+Med rotasjon på får hver brikke en tilfeldig kvart omdreining. **Trykk på en
+brikke for å dreie den 90 grader**, uten å dra den. Etter dreiningen prøves
+koblingen med én gang, så den siste dreiningen kan være den som får brikken
+på plass.
+
+En brikke som står feil vei kan ikke koble seg til noe. Det gir en ryddig
+regel: en gruppe har alltid rotasjon null, for brikker kobler seg bare når
+de står riktig – og da er det ingenting å dreie. Derfor kan bare
+enkeltbrikker dreies.
+
+Treffdeteksjonen regner punktet tilbake til brikkens egen, uroterte ramme før
+den prøver `isPointInPath`. Da virker både boksprøven og formprøven uendret,
+uansett hvordan brikken står. Skuffen viser brikkene slik de faktisk står, så
+man ser hvilke som må snus.
+
+### Kanter først
+
+Et hjelpemiddel som holder midtbrikkene unna til rammen er lagt. Brikkene er
+ikke borte – de er bare ikke i veien ennå, og de kommer tilbake av seg selv
+i det siste kantbrikken faller på plass. Panelet teller ned hvor mange som
+gjenstår.
+
+### Forhåndsvisning
+
+Spøkelsesbildet under brettet kan stilles fra 0 til 60 %. I tillegg finnes en
+liten forhåndsvisning i hjørnet med to størrelser, som kan slås helt av for
+den som vil pusle uten fasit.
 
 ## Å finne brikkene igjen
 
@@ -228,6 +275,14 @@ rammen og ingenting utenfor bordet.
 Egne bilder: EXIF-rotasjon med en konstruert JPEG, at bildet overlever en
 omlasting, at sideforholdet følger bildet i både liggende og stående format,
 at forrige bilde faktisk slippes fra minnet ved bytte, og at sletting virker.
+
+Rotasjon og vanskelighetsgrad: at rotasjon deles ut ved stokking, at en
+brikke som står feil ikke kan koble seg, at fire dreininger fører tilbake til
+utgangspunktet, at grupper ikke kan dreies, og at treffdeteksjonen følger
+rotasjonen – et punkt i en tapp bommer etter dreining, mens det samme punktet
+dreid 90 grader treffer. At scoren stiger med brikketall, rotasjon og flate
+motiver, og synker med hjelpemidler. At kanter først skjuler midtbrikkene og
+slipper taket av seg selv når rammen er ferdig.
 
 I tillegg er hele berøringskjeden verifisert med ekte pointer events:
 en brikke ble dratt 18 piksler bom og smatt eksakt på plass, panorering på

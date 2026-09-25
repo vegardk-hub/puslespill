@@ -64,6 +64,7 @@ export class Skuff {
     for (const b of puslespill.brikker) {
       if (b.laast) continue;
       if (spill.medlemmer(b.gruppe).size > 1) continue;
+      if (spill.skjult && spill.skjult(b)) continue;
       ut.push(b);
     }
     return ut;
@@ -173,9 +174,18 @@ export class Skuff {
       const s = this.celle / Math.max(celle.sw, celle.sh);
       const b2 = celle.sw * s;
       const h2 = celle.sh * s;
+      const dx = x + (this.celle - b2) / 2;
+      const dy = y + (this.celle - h2) / 2;
+      // Brikkene vises slik de faktisk star, sa man ser hvilke som ma snus.
+      if (b.rot) {
+        ctx.save();
+        ctx.translate(x + this.celle / 2, y + this.celle / 2);
+        ctx.rotate((b.rot * Math.PI) / 2);
+        ctx.translate(-(x + this.celle / 2), -(y + this.celle / 2));
+      }
       ctx.drawImage(atlas.sider[celle.side], celle.sx, celle.sy, celle.sw, celle.sh,
-        x + (this.celle - b2) / 2, y + (this.celle - h2) / 2, b2, h2);
-      void b;
+        dx, dy, b2, h2);
+      if (b.rot) ctx.restore();
     }
 
     // Rullefelt, så det synes at det finnes mer utenfor skjermen.

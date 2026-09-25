@@ -44,6 +44,9 @@ export function lagPuslespill(bilde, onsketAntall, opts = {}) {
         // Forskyvning som animeres mot null nar en brikke smetter pa plass.
         animX: 0,
         animY: 0,
+        // Rotasjon i kvarte omdreininger, 0-3. animRot animeres mot null.
+        rot: 0,
+        animRot: 0,
         laast: false,
       });
     }
@@ -80,6 +83,7 @@ export function nullstillGrupper(puslespill) {
     b.laast = false;
     b.animX = 0;
     b.animY = 0;
+    b.animRot = 0;
     puslespill.grupper.set(b.id, new Set([b.id]));
   }
   puslespill.rekkefolge = puslespill.brikker.map((b) => b.id);
@@ -97,8 +101,11 @@ export function naboer(puslespill, brikke) {
   return ut;
 }
 
-/** Deterministisk spredning av brikkene rundt rammen (midlertidig for fase 2). */
-export function spreBrikker(puslespill, bord) {
+/**
+ * Sprer brikkene i feltet rundt rammen.
+ * @param {boolean} medRotasjon gir hver brikke en tilfeldig kvart omdreining
+ */
+export function spreBrikker(puslespill, bord, medRotasjon = false) {
   const rng = makeRng(puslespill.seed + ':spredning');
   for (const b of puslespill.brikker) {
     // Fordel i den frie sonen rundt puslespillet.
@@ -119,6 +126,9 @@ export function spreBrikker(puslespill, bord) {
     }
   }
   nullstillGrupper(puslespill);
+  for (const b of puslespill.brikker) {
+    b.rot = medRotasjon ? rng.int(0, 3) : 0;
+  }
 }
 
 /** Legger alt ferdig sammensatt - brukes til a se motivet. */
@@ -132,6 +142,8 @@ export function samleBrikker(puslespill) {
     b.y = b.hjemY;
     b.gruppe = 0;
     b.laast = true;
+    b.rot = 0;
+    b.animRot = 0;
   }
 }
 
