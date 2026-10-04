@@ -32,6 +32,8 @@ export class Tegner {
     this.utvalg = null;
     /** Valgfri test: brikker den sier ja til tegnes ikke. */
     this.skjult = null;
+    /** Konfetti til feiringen, tegnet over alt annet. */
+    this.konfetti = null;
     /** Funksjoner som kjøres hver frame og selv sier om de er ferdige. */
     this.animatorer = new Set();
     this.sisteTegnet = 0;
@@ -103,10 +105,11 @@ export class Tegner {
     this._tegnUtvalg();
     this._tegnLasso();
 
-    // Skuffen ligger over verden, i CSS-piksler.
-    if (this.skuff && this.puslespill && this.atlas) {
+    // Skuffen og konfettien ligger over verden, i CSS-piksler.
+    if ((this.skuff || this.konfetti) && this.puslespill && this.atlas) {
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-      this.skuff.tegn(ctx, this.atlas, this.puslespill);
+      if (this.skuff) this.skuff.tegn(ctx, this.atlas, this.puslespill);
+      if (this.konfetti && this.konfetti.aktiv) this.konfetti.tegn(ctx);
     }
 
     this.sisteTegnet = performance.now() - t0;

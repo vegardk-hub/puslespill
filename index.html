@@ -19,98 +19,116 @@
 
 <canvas id="brett"></canvas>
 
-<header id="panel">
-  <div class="rad rad-topp">
-    <h1>Puslespill</h1>
-    <button id="panel-veksle" class="ikonknapp" aria-label="Vis eller skjul panelet">▾</button>
+<!-- Topplinja er alt man trenger mens man pusler. Resten bor i menyen. -->
+<header id="topplinje">
+  <button id="menyknapp" class="ikonknapp" aria-label="Åpne innstillinger" aria-expanded="false">
+    <span class="hamburger"></span>
+  </button>
+
+  <div class="fremdriftsfelt">
+    <div class="fremdrift"><div id="fremdrift-linje"></div></div>
+    <span id="spillstatus" class="spillstatus" aria-live="polite">—</span>
   </div>
 
-  <div class="panelinnhold">
-    <div class="rad">
-      <span class="etikett">Brikker</span>
-      <div class="chips">
-        <button data-forhandsvalg="12">12</button>
-        <button data-forhandsvalg="24">24</button>
-        <button data-forhandsvalg="50">50</button>
-        <button data-forhandsvalg="100">100</button>
-        <button data-forhandsvalg="150">150</button>
-        <button data-forhandsvalg="200">200</button>
-        <button data-forhandsvalg="300">300</button>
-        <button data-forhandsvalg="500">500</button>
-      </div>
-      <input id="eget-antall" type="number" min="4" max="500" step="1" inputmode="numeric"
-             aria-label="Eget antall brikker">
-    </div>
-
-    <div class="rad resultat">
-      <strong id="brikketall">—</strong>
-      <span id="alternativer"></span>
-      <span id="vanskemerke" class="vanskemerke">—</span>
-    </div>
-
-    <div class="rad">
-      <span class="etikett">Nivå</span>
-      <div class="chips" id="oppsett"></div>
-    </div>
-
-    <div class="rad">
-      <span class="etikett">Motiv</span>
-      <select id="motiv" aria-label="Motivtype">
-        <option value="tilfeldig">Tilfeldig</option>
-      </select>
-      <button id="velgbilde">Eget bilde &hellip;</button>
-      <input id="bildefil" type="file" accept="image/*" hidden>
-    </div>
-
-    <div class="rad galleri" id="minebilder" hidden>
-      <span class="etikett">Mine</span>
-      <div id="minebilder-liste"></div>
-    </div>
-
-    <div class="rad">
-      <span class="etikett">Kutt</span>
-      <select id="kuttstil" aria-label="Brikkeform">
-        <option value="klassisk">Klassisk</option>
-        <option value="bolget">Bølget</option>
-        <option value="kaotisk">Kaotisk</option>
-      </select>
-
-      <span class="etikett">Palett</span>
-      <select id="palett" aria-label="Fargepalett">
-        <option value="auto">Tilfeldig</option>
-      </select>
-    </div>
-
-    <div class="rad">
-      <span class="etikett">Spøkelse</span>
-      <input id="spokelse" type="range" min="0" max="60" value="15" aria-label="Styrke på spøkelsesbilde">
-      <button id="fest" aria-pressed="true">Fest til brettet</button>
-      <button id="lydknapp" aria-pressed="true">Lyd på</button>
-    </div>
-
-    <div class="rad">
-      <button id="rotasjon" aria-pressed="false">Roter brikker</button>
-      <button id="kanterforst" aria-pressed="false">Kanter først</button>
-      <button id="bildeknapp" aria-pressed="false">Vis bildet</button>
-      <span id="hjelpetekst" class="hjelpetekst"></span>
-    </div>
-
-    <div class="rad">
-      <button id="nytt" class="primar">Nytt motiv</button>
-      <button id="stokk">Stokk</button>
-      <button id="rydd">Rydd</button>
-      <button id="skuffknapp" aria-pressed="true">Skuff</button>
-      <button id="fasit">Fasit</button>
-      <button id="dagens">Dagens</button>
-      <button id="samlingknapp">Samling</button>
-      <span id="spillstatus" class="spillstatus">—</span>
-    </div>
-
-    <div class="fremdrift"><div id="fremdrift-linje"></div></div>
-
-    <p id="status" class="status">—</p>
+  <div class="snarveier">
+    <button id="rydd" title="Legg løse brikker i rutenett">Rydd</button>
+    <button id="skuffknapp" aria-pressed="true" title="Vis eller skjul brikkeskuffen">Skuff</button>
+    <button id="bildeknapp" aria-pressed="false" title="Vis motivet i hjørnet">Bilde</button>
   </div>
 </header>
+
+<div id="menyskygge" hidden></div>
+
+<aside id="meny" hidden aria-label="Innstillinger">
+  <div class="meny-topp">
+    <h1>Puslespill</h1>
+    <button id="meny-lukk" class="ikonknapp" aria-label="Lukk innstillinger">&times;</button>
+  </div>
+
+  <div class="meny-innhold">
+    <section>
+      <h2>Nivå</h2>
+      <div class="chips" id="oppsett"></div>
+      <p class="rad resultat">
+        <strong id="brikketall">—</strong>
+        <span id="alternativer"></span>
+        <span id="vanskemerke" class="vanskemerke">—</span>
+      </p>
+    </section>
+
+    <section>
+      <h2>Brikker</h2>
+      <div class="rad">
+        <div class="chips">
+          <button data-forhandsvalg="12">12</button>
+          <button data-forhandsvalg="24">24</button>
+          <button data-forhandsvalg="50">50</button>
+          <button data-forhandsvalg="100">100</button>
+          <button data-forhandsvalg="150">150</button>
+          <button data-forhandsvalg="200">200</button>
+          <button data-forhandsvalg="300">300</button>
+          <button data-forhandsvalg="500">500</button>
+        </div>
+        <input id="eget-antall" type="number" min="4" max="500" step="1" inputmode="numeric"
+               aria-label="Eget antall brikker">
+      </div>
+    </section>
+
+    <section>
+      <h2>Motiv</h2>
+      <div class="rad">
+        <select id="motiv" aria-label="Motivtype">
+          <option value="tilfeldig">Tilfeldig</option>
+        </select>
+        <button id="velgbilde">Eget bilde &hellip;</button>
+        <input id="bildefil" type="file" accept="image/*" hidden>
+      </div>
+      <div class="rad galleri" id="minebilder" hidden>
+        <div id="minebilder-liste"></div>
+      </div>
+      <div class="rad">
+        <span class="etikett">Kutt</span>
+        <select id="kuttstil" aria-label="Brikkeform">
+          <option value="klassisk">Klassisk</option>
+          <option value="bolget">Bølget</option>
+          <option value="kaotisk">Kaotisk</option>
+        </select>
+        <span class="etikett">Palett</span>
+        <select id="palett" aria-label="Fargepalett">
+          <option value="auto">Tilfeldig</option>
+        </select>
+      </div>
+    </section>
+
+    <section>
+      <h2>Hjelp og utfordring</h2>
+      <div class="rad">
+        <label class="etikett" for="spokelse">Spøkelsesbilde</label>
+        <input id="spokelse" type="range" min="0" max="60" value="15">
+      </div>
+      <div class="rad">
+        <button id="fest" aria-pressed="true">Fest til brettet</button>
+        <button id="rotasjon" aria-pressed="false">Roter brikker</button>
+        <button id="kanterforst" aria-pressed="false">Kanter først</button>
+        <button id="lydknapp" aria-pressed="true">Lyd på</button>
+      </div>
+      <p id="hjelpetekst" class="hjelpetekst" aria-live="polite"></p>
+    </section>
+
+    <section>
+      <h2>Spillet</h2>
+      <div class="rad">
+        <button id="nytt" class="primar">Nytt motiv</button>
+        <button id="dagens">Dagens</button>
+        <button id="stokk">Stokk om</button>
+        <button id="fasit">Fasit</button>
+        <button id="samlingknapp">Samling</button>
+      </div>
+    </section>
+
+    <p id="status" class="status"></p>
+  </div>
+</aside>
 
 <div id="forhandsvisning" hidden>
   <canvas id="forhandsvisning-lerret"></canvas>
@@ -119,11 +137,6 @@
 
 <div id="skufflinje">
   <div id="skufffiltre" role="group" aria-label="Sorter brikkene i skuffen"></div>
-</div>
-
-<div id="laster" hidden>
-  <div class="spinner"></div>
-  <p id="laster-tekst">Tegner motiv …</p>
 </div>
 
 <div id="samling" hidden>
@@ -150,6 +163,11 @@
     <button id="beskjaer-avbryt">Avbryt</button>
     <button id="beskjaer-ok" class="primar">Bruk bildet</button>
   </div>
+</div>
+
+<div id="laster" hidden>
+  <div class="spinner"></div>
+  <p id="laster-tekst">Tegner motiv …</p>
 </div>
 
 <div id="ferdig" hidden>

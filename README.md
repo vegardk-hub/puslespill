@@ -3,10 +3,9 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen, eller du bruker dine egne bilder.
 
-**Status: fase 0–8 ferdig.** Puslespillet er spillbart, brikkene lar seg
-finne, du kan bruke dine egne bilder, vanskelighetsgraden kan stilles fra
-barnehage til beinhard, og alt overlever at appen lukkes. Igjen står bare
-fase 9 – polering.
+**Status: ferdig.** Alle ni fasene er gjennomført. Appen er spillbar,
+brikkene lar seg finne, du kan bruke dine egne bilder, vanskelighetsgraden
+går fra barnehage til beinhard, og alt overlever at appen lukkes.
 
 ## Kjøre lokalt
 
@@ -31,6 +30,7 @@ js/core/vanskelighet.js  Regner alle innstillingene om til ett tall.
 js/core/okt.js      Pakker et pågående puslespill ned og opp igjen.
 js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
 js/ui/skuff.js      Brikkeskuffen: register over løse brikker, med filtre.
+js/ui/konfetti.js   Konfetti til feiringen.
 js/ui/beskjaer.js   Beskjæring av egne bilder, og lesing av bildefiler.
 js/art/eget.js      Eget bilde som motivkilde.
 js/lagring.js       IndexedDB: bilder, pågående spill, samling, innstillinger.
@@ -41,6 +41,16 @@ js/art/tegning.js   Tegneverktøykasse: taperte bånd, former, puslbarhetsmålin
 js/art/scener.js    De figurative motivene – dinosaur, hus, bil, rakett, båt, katt.
 js/art/motiver.js   Registeret over alle motivtyper.
 ```
+
+## Grensesnittet
+
+Topplinja holder det man trenger mens man pusler: fremdrift, klokke, og tre
+snarveier (Rydd, Skuff, Bilde). Alt oppsett bor i en meny som skyves inn fra
+siden.
+
+Det var ikke slik i starten. Panelet vokste for hver fase til det dekket
+omtrent 70 % av skjermen – på en app hvis hele poeng er at bordet skal være
+stort. Nå tar topplinja 9 %. Menyen lukkes med skygge, kryss eller Escape.
 
 ## Slik spilles det
 
@@ -120,6 +130,21 @@ Et hjelpemiddel som holder midtbrikkene unna til rammen er lagt. Brikkene er
 ikke borte – de er bare ikke i veien ennå, og de kommer tilbake av seg selv
 i det siste kantbrikken faller på plass. Panelet teller ned hvor mange som
 gjenstår.
+
+### Skjermen sovner ikke
+
+Et puslespill er lange perioder med ettertanke og korte berøringer, og
+iPaden rekker å sovne imellom. Appen ber om Wake Lock ved første berøring,
+og på nytt hver gang den kommer tilbake fra bakgrunnen.
+
+### Lyd
+
+Alt er laget med oscillatorer – ingen lydfiler, ingenting å laste ned.
+Klikket når en brikke smetter på plass er et kort støyknepp gjennom et smalt
+båndpassfilter, ikke en ren tone. En ren tone høres elektronisk ut; et knepp
+med litt støy i likner mer på to brikker som møtes, og det er den lyden som
+skal tåle å høres fem hundre ganger. Treffer du to naboer samtidig, blir
+klangen lysere.
 
 ### Forhåndsvisning
 
@@ -341,6 +366,18 @@ en brikke ble dratt 18 piksler bom og smatt eksakt på plass, panorering på
 tomt bord flyttet kameraet uten å røre en eneste brikke, en brikke ble
 løftet ut av skuffen og opp på bordet, båndet rullet sidelengs, og et bilde
 gikk hele veien fra filvelger via beskjæring til ferdig puslespill.
+
+## Tilgjengelighet
+
+Alle treffområder er minst 44 piksler. Alle knapper har lesbart navn. Fokus
+vises tydelig med `:focus-visible`. Fremdrift og hjelpetekst er `aria-live`,
+så en skjermleser får med seg at noe skjedde. `prefers-reduced-motion` slår
+av konfetti, menyanimasjon, pulsende stjerne og overganger.
+
+**Haptikk er ikke med.** iOS gir ikke nettsider tilgang til vibrasjon –
+`navigator.vibrate` finnes ikke i Safari. Det finnes triks med skjulte
+skjemaelementer, men de er skjøre og misbruker noe som er ment til noe annet.
+Lyden og animasjonen får bære følelsen i stedet.
 
 ## Ikke verifisert ennå
 

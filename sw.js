@@ -15,7 +15,7 @@
 // serveren. Kostnaden er en 304, og gevinsten er at filene alltid følger
 // hverandre.
 
-const CACHE = 'puslespill-v9';
+const CACHE = 'puslespill-v10';
 const NETT_FRIST_MS = 2500;
 
 const SKALL = [
@@ -42,6 +42,7 @@ const SKALL = [
   './js/input/gester.js',
   './js/ui/skuff.js',
   './js/ui/beskjaer.js',
+  './js/ui/konfetti.js',
   './js/lagring.js',
   './js/art/noise.js',
   './js/art/neon.js',

@@ -10,6 +10,7 @@ import { Kamera } from './render/camera.js';
 import { Tegner, MAKS_LOFT } from './render/renderer.js';
 import { Gester } from './input/gester.js';
 import { Skuff, FARGEBOTTER } from './ui/skuff.js';
+import { Konfetti } from './ui/konfetti.js';
 import { genererMotiv, MOTIVER, tilgjengeligeMotiv } from './art/motiver.js';
 import { settAktivtBilde, hentAktivtBilde } from './art/eget.js';
 import { Beskjaerer, lesBildefil } from './ui/beskjaer.js';
@@ -24,6 +25,9 @@ const kamera = new Kamera();
 const tegner = new Tegner(canvas, kamera);
 const skuff = new Skuff();
 tegner.skuff = skuff;
+const konfetti = new Konfetti();
+tegner.konfetti = konfetti;
+const roligBevegelse = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const tilstand = {
   motiv: 'dinosaur',
@@ -80,9 +84,9 @@ function visning() {
 
 /** Plassen panelet legger beslag på, så brettet sentreres i resten. */
 function innrykk() {
-  const p = $('#panel').getBoundingClientRect();
+  const t = $('#topplinje').getBoundingClientRect();
   return {
-    topp: Math.min(p.bottom + 8, canvas.clientHeight * 0.45),
+    topp: t.bottom + 8,
     bunn: skuff.rekt.h + (skuff.apen ? 44 : 0),
   };
 }
@@ -227,8 +231,25 @@ function animerDreining(brikke) {
   });
 }
 
+/**
+ * Konfetti i skjermkoordinater. Respekterer at noen slår av bevegelse -
+ * da kommer kortet alene, uten at noe faller.
+ */
+function slippKonfetti() {
+  if (roligBevegelse.matches) return;
+  const v = visning();
+  konfetti.slipp(v.b, v.h);
+  let forrige = performance.now();
+  tegner.animer((na) => {
+    const dt = Math.min(0.05, (na - forrige) / 1000);
+    forrige = na;
+    return konfetti.oppdater(dt, v.h);
+  });
+}
+
 function feire() {
   stoppKlokke();
+  slippKonfetti();
   lagreIFullforte();
   $('#ferdig-tekst').textContent =
     `${puslespill.antall} brikker på ${formaterTid(spill.brukteSekunder())}`;
@@ -325,7 +346,10 @@ new Gester(canvas, kamera, {
     visHeleBordet = !visHeleBordet;
     tilpassVisning(visHeleBordet ? bord : arbeidsutsnitt());
   },
-  onBeroring: () => { if (tilstand.lyd) lyd.vekk(); },
+  onBeroring: () => {
+    if (tilstand.lyd) lyd.vekk();
+    holdSkjermenVaken();
+  },
 
   finnHandtak: (verden) => {
     if (!spill) return null;
@@ -513,6 +537,27 @@ function speilBrytere() {
       o.kanterForst === tilstand.kanterForst);
   }
 }
+
+/**
+ * Holder skjermen vaken mens man pusler.
+ * Et puslespill er lange perioder med ettertanke og korte berøringer, og
+ * iPaden rekker å sovne imellom. Låsen må be om seg selv på nytt etter at
+ * appen har vært i bakgrunnen.
+ */
+let vakenLas = null;
+async function holdSkjermenVaken() {
+  if (!('wakeLock' in navigator) || vakenLas) return;
+  try {
+    vakenLas = await navigator.wakeLock.request('screen');
+    vakenLas.addEventListener('release', () => { vakenLas = null; });
+  } catch {
+    // Ikke tilgjengelig, eller nektet. Da sovner skjermen som vanlig.
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') holdSkjermenVaken();
+});
 
 // ---------------------------------------------------------------------------
 // Status
@@ -739,11 +784,28 @@ $('#lydknapp').addEventListener('click', () => {
   $('#lydknapp').textContent = tilstand.lyd ? 'Lyd på' : 'Lyd av';
   lagreSnart();
 });
-$('#ferdig').addEventListener('click', () => { $('#ferdig').hidden = true; });
-$('#panel-veksle').addEventListener('click', () => {
-  document.body.classList.toggle('panel-skjult');
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(tilpassCanvas, 60);
+$('#ferdig').addEventListener('click', () => {
+  $('#ferdig').hidden = true;
+  konfetti.stopp();
+  tegner.merkSkitten();
+});
+/** Menyen dekker bordet, så den lukkes lett: skygge, kryss eller Escape. */
+function settMeny(apen) {
+  $('#meny').hidden = !apen;
+  $('#menyskygge').hidden = !apen;
+  $('#menyknapp').setAttribute('aria-expanded', String(apen));
+  if (apen) $('#meny-lukk').focus();
+  else $('#menyknapp').focus();
+}
+
+$('#menyknapp').addEventListener('click', () => settMeny($('#meny').hidden));
+$('#meny-lukk').addEventListener('click', () => settMeny(false));
+$('#menyskygge').addEventListener('click', () => settMeny(false));
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#meny').hidden) settMeny(false);
+  else if (!$('#samling').hidden) $('#samling').hidden = true;
+  else if (!$('#ferdig').hidden) $('#ferdig').hidden = true;
 });
 
 // ---------------------------------------------------------------------------
@@ -1187,6 +1249,7 @@ window.__puslespill = {
   tegner, kamera, tilstand, byggNytt, settAntall, toleranse, skuff, oppdaterSkuff,
 };
 
+settMeny(false);
 $('#oppsett').innerHTML = Object.entries(OPPSETT)
   .map(([n, o]) => `<button data-oppsett="${n}">${o.navn}</button>`).join('');
 

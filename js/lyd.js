@@ -51,12 +51,43 @@ function tone(frekvens, varighet, { type = 'sine', volum = 0.1, nar = 0, slutt =
 
 /** Brikken løftes fra bordet. */
 export function loft() {
-  tone(280, 0.05, { type: 'sine', volum: 0.05 });
+  tone(280, 0.05, { type: 'sine', volum: 0.045 });
 }
 
 /** Brikken legges ned uten å koble seg. */
 export function legg() {
-  tone(180, 0.06, { type: 'sine', volum: 0.05, slutt: 120 });
+  knepp(240, 0.04, 0.05);
+  tone(170, 0.055, { type: 'sine', volum: 0.04, slutt: 115 });
+}
+
+/**
+ * Kort støyknepp gjennom et smalt filter.
+ * En ren tone høres elektronisk ut. Et knepp med litt støy i seg likner
+ * mer på to brikker som møtes, og det er den lyden som skal tåle å høres
+ * fem hundre ganger.
+ */
+function knepp(frekvens, varighet = 0.055, volum = 0.09) {
+  const a = kontekst();
+  if (!a) return;
+  const lengde = Math.max(1, Math.floor(a.sampleRate * varighet));
+  const buffer = a.createBuffer(1, lengde, a.sampleRate);
+  const d = buffer.getChannelData(0);
+  for (let i = 0; i < lengde; i++) {
+    // Støy som dør raskt ut.
+    d[i] = (Math.random() * 2 - 1) * (1 - i / lengde) ** 3;
+  }
+  const kilde = a.createBufferSource();
+  kilde.buffer = buffer;
+  const filter = a.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = frekvens;
+  filter.Q.value = 7;
+  const g = a.createGain();
+  g.gain.value = volum;
+  kilde.connect(filter);
+  filter.connect(g);
+  g.connect(a.destination);
+  kilde.start();
 }
 
 /**
@@ -65,8 +96,9 @@ export function legg() {
  */
 export function kobling(antall = 1) {
   const grunn = 620 + Math.min(4, antall - 1) * 90;
-  tone(grunn, 0.09, { type: 'triangle', volum: 0.11 });
-  tone(grunn * 1.5, 0.07, { type: 'sine', volum: 0.06, nar: 0.025 });
+  knepp(grunn * 1.6, 0.05, 0.11);
+  tone(grunn, 0.085, { type: 'triangle', volum: 0.075 });
+  tone(grunn * 1.5, 0.06, { type: 'sine', volum: 0.045, nar: 0.02 });
 }
 
 /** Gruppen låste seg fast på brettet. */
@@ -80,5 +112,7 @@ export function fest() {
 export function ferdig() {
   [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
     tone(f, 0.34, { type: 'triangle', volum: 0.1, nar: i * 0.11 });
+    tone(f * 2, 0.2, { type: 'sine', volum: 0.035, nar: i * 0.11 + 0.01 });
   });
+  tone(1046.5, 1.1, { type: 'sine', volum: 0.06, nar: 0.46 });
 }
