@@ -3,9 +3,10 @@
 En puslespill-PWA laget for iPad. Ingen annonser, ingen abonnement, ingen kjøp.
 Motivene genereres i appen, eller du bruker dine egne bilder.
 
-**Status: fase 0–7 ferdig.** Puslespillet er spillbart, brikkene lar seg
-finne, du kan bruke dine egne bilder, og vanskelighetsgraden kan stilles
-fra barnehage til beinhard. Neste steg er fase 8 – lagring og galleri.
+**Status: fase 0–8 ferdig.** Puslespillet er spillbart, brikkene lar seg
+finne, du kan bruke dine egne bilder, vanskelighetsgraden kan stilles fra
+barnehage til beinhard, og alt overlever at appen lukkes. Igjen står bare
+fase 9 – polering.
 
 ## Kjøre lokalt
 
@@ -27,11 +28,12 @@ js/render/camera.js Pan/zoom i verdenskoordinater.
 js/render/renderer.js  Tegner bare når noe har endret seg.
 js/core/spill.js    Spillogikken: treffdeteksjon, grupper, snapping, rotasjon.
 js/core/vanskelighet.js  Regner alle innstillingene om til ett tall.
+js/core/okt.js      Pakker et pågående puslespill ned og opp igjen.
 js/input/gester.js  Pointer Events: dra brikker, panorering og pinch-zoom.
 js/ui/skuff.js      Brikkeskuffen: register over løse brikker, med filtre.
 js/ui/beskjaer.js   Beskjæring av egne bilder, og lesing av bildefiler.
 js/art/eget.js      Eget bilde som motivkilde.
-js/lagring.js       IndexedDB. Bildene blir liggende på iPaden.
+js/lagring.js       IndexedDB: bilder, pågående spill, samling, innstillinger.
 js/lyd.js           Lyd laget med oscillatorer. Ingen lydfiler.
 js/art/neon.js      Flow field + lagvis glød. Motivene er laget for å PUSLES.
 js/art/noise.js     Verdistøy.
@@ -153,6 +155,49 @@ bildet ville røpet løsningen, og opprydning skal flytte haugen minst mulig.
 og kan flyttes samlet. Et utvalg kobler seg ikke sammen av seg selv – det
 skal kunne skyves til side uten at noe fester seg.
 
+## Alt blir liggende
+
+Appen starter der du slapp. Et påbegynt puslespill, hvilke brikker som
+henger sammen, klokka, utsnittet du jobbet i – og alle bryterne du har
+stilt.
+
+**En lagret økt er under 7 kB for 504 brikker.** Her betaler seed-designet
+fra fase 1 seg: brikkeformene følger av `(motiv, antall, kuttstil, seed)`,
+så de trenger ikke lagres i det hele tatt. Puslespillet bygges på nytt fra
+fire tall, og bare posisjonene legges oppå – som typede tabeller.
+
+### To feller i lagring ved avslutning
+
+iOS kan ta livet av en bakgrunnsfane uten forvarsel, så `pagehide` og
+`visibilitychange` er de eneste virkelig pålitelige øyeblikkene å skrive på.
+Begge var ødelagte i første forsøk, og begge måtte rettes:
+
+**Rekkefølgen.** Nettleseren river siden ned etter første `await`, og alt bak
+den awaiten blir aldri kjørt. Første versjon lagret innstillingene først og
+spillet etterpå – da gikk spillet tapt hver gang appen ble lukket, og klokka
+hoppet tilbake til forrige autolagring. Nå pakkes stillingen synkront, og
+skrivingen av selve spillet settes i gang før noe annet.
+
+**Transaksjonen må starte synkront.** En IndexedDB-transaksjon som åpnes
+inne i selve hendelsen blir fullført; en som først venter på at databasen
+skal åpnes gjør det ikke. Derfor holdes en synkron referanse til den åpne
+databasen.
+
+Testet med en klokke satt til 9999 sekunder rett før omlasting, uten noe
+trekk som kunne utløst autolagring: den kom tilbake som 9998.
+
+## Samlingen
+
+Hvert ferdig puslespill havner i samlingen med miniatyr, motiv, brikketall,
+tid, dato og nivå. Øverst står totalene: antall fullførte, brikker lagt,
+tid brukt, og hvor mange dager på rad dagens puslespill er løst.
+
+## Dagens puslespill
+
+Samme motiv, samme kutt og samme 100 brikker for alle, hver dag – helt uten
+server. Seeden er datoen, og resten følger av den. Endrer du noe i oppsettet,
+er det ikke dagens puslespill lenger, og det teller ikke i dagsrekka.
+
 ## Egne bilder
 
 Trykk «Eget bilde …» for å velge fra Bilder, ta et nytt, eller hente fra
@@ -271,6 +316,13 @@ gir nøyaktig `2(kolonner + rader) − 4` brikker, at fargebøttene dekker alle
 brikker, at lasso velger riktig, at et utvalg flytter seg samlet, og at
 opprydning ved 54, 204 og 504 brikker gir null overlapp, ingenting oppå
 rammen og ingenting utenfor bordet.
+
+Lagring: at en økt pakkes tapsfritt ved 12, 204 og 504 brikker, at 504
+brikker tar under 10 kB, at en stilling fra feil puslespill avvises i stedet
+for å lage rot, at posisjoner, rotasjoner, grupper, låsinger, tegnerekkefølge,
+trekk, fremdrift og kamera er identiske etter en omlasting, at dagens
+puslespill er likt hele dagen og endrer seg ved midnatt, og at et fullført
+puslespill havner i samlingen mens det pågående slettes.
 
 Egne bilder: EXIF-rotasjon med en konstruert JPEG, at bildet overlever en
 omlasting, at sideforholdet følger bildet i både liggende og stående format,

@@ -3,6 +3,7 @@ import { solveGrid, describeGrid } from './core/grid.js';
 import { lagPuslespill, spreBrikker, samleBrikker, ryddBrikker } from './core/puzzle.js';
 import { Spill, formaterTid } from './core/spill.js';
 import { regnVanskelighet, OPPSETT } from './core/vanskelighet.js';
+import { pakk, pakkUt, dagensOppskrift } from './core/okt.js';
 import { erKantbrikke } from './ui/skuff.js';
 import { byggAtlas } from './render/atlas.js';
 import { Kamera } from './render/camera.js';
@@ -37,6 +38,8 @@ const tilstand = {
   rotasjon: false,
   kanterForst: false,
   visBilde: false,
+  bildeId: null,
+  dagens: null,
 };
 
 let puslespill = null;
@@ -51,6 +54,9 @@ let lassoFra = null;
 let beskjaerer = null;
 let venterBilde = null;
 let mineBilder = [];
+let fullforte = [];
+let lagringsUr = 0;
+let gjenoppretter = false;
 
 /**
  * Bordet må være stort nok til at alle brikkene får plass rundt rammen,
@@ -127,7 +133,7 @@ function laLasteskjermenVises() {
   });
 }
 
-async function byggNytt({ nyttMotiv = true } = {}) {
+async function byggNytt({ nyttMotiv = true, stilling = null } = {}) {
   $('#laster').hidden = false;
   $('#laster-tekst').textContent = nyttMotiv ? 'Tegner motiv …' : 'Kutter brikker …';
   $('#ferdig').hidden = true;
@@ -151,6 +157,7 @@ async function byggNytt({ nyttMotiv = true } = {}) {
   bord = regnBord(puslespill);
   spreBrikker(puslespill, bord, tilstand.rotasjon);
   spill = new Spill(puslespill);
+  const gjenopprettet = stilling ? pakkUt(stilling, puslespill, spill, kamera) : false;
   settKantmodus();
 
   atlas = byggAtlas(motiv.canvas, puslespill);
@@ -160,7 +167,9 @@ async function byggNytt({ nyttMotiv = true } = {}) {
   tegner.settPuslespill(puslespill, atlas, motiv.canvas);
   kamera.minSkala = Math.min(visning().b / bord.w, visning().h / bord.h) * 0.75;
   visHeleBordet = false;
-  tilpassVisning(arbeidsutsnitt());
+  // En gjenopprettet okt beholder utsnittet man forlot.
+  if (!gjenopprettet) tilpassVisning(arbeidsutsnitt());
+  else { kamera.begrens(bord, visning().b, visning().h); tegner.merkSkitten(); }
 
   startKlokke();
   oppdaterStatus({ tMotiv, tAtlas });
@@ -170,6 +179,7 @@ async function byggNytt({ nyttMotiv = true } = {}) {
   oppdaterSkuff();
   oppdaterSpillstatus();
   $('#laster').hidden = true;
+  if (!gjenoppretter) lagreSnart();
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +229,7 @@ function animerDreining(brikke) {
 
 function feire() {
   stoppKlokke();
+  lagreIFullforte();
   $('#ferdig-tekst').textContent =
     `${puslespill.antall} brikker på ${formaterTid(spill.brukteSekunder())}`;
   $('#ferdig').hidden = false;
@@ -348,7 +359,7 @@ new Gester(canvas, kamera, {
   onDragSlutt: (handtak, flyttet) => {
     tegner.dragGruppe = null;
     skuff.uteId = null;
-    if (!handtak) return;
+    if (!handtak) { lagreSnart(); return; }
     // Et trykk uten bevegelse dreier brikken. Deretter provers koblingen
     // som vanlig, sa den siste dreiningen kan vare den som far den pa plass.
     if (!handtak.utvalg && tilstand.rotasjon && flyttet < 9 && spill.drei(handtak.brikke)) {
@@ -359,6 +370,7 @@ new Gester(canvas, kamera, {
     if (handtak.utvalg) {
       if (tilstand.lyd) lyd.legg();
       oppdaterSkuff();
+      lagreSnart();
       return;
     }
     const res = spill.slipp(handtak, toleranse(), tilstand.festTilBrett);
@@ -372,6 +384,7 @@ new Gester(canvas, kamera, {
     oppdaterSpillstatus();
     oppdaterHjelpetekst();
     oppdaterSkuff();
+    lagreSnart();
     if (res.ferdig) feire();
   },
 
@@ -467,6 +480,7 @@ function tegnForhandsvisning() {
 function brukOppsett(nokkel) {
   const o = OPPSETT[nokkel];
   if (!o) return;
+  ikkeLengerDagens();
   tilstand.rotasjon = o.rotasjon;
   tilstand.kuttstil = o.kuttstil;
   tilstand.spokelse = o.spokelse;
@@ -568,6 +582,11 @@ window.visualViewport?.addEventListener('resize', utsattTilpassing);
 // Grensesnitt
 // ---------------------------------------------------------------------------
 
+/** Endrer man oppsettet, er det ikke dagens puslespill lenger. */
+function ikkeLengerDagens() {
+  tilstand.dagens = null;
+}
+
 function settAntall(n) {
   tilstand.onsketAntall = Math.max(4, Math.min(500, Math.round(n)));
   $('#eget-antall').value = tilstand.onsketAntall;
@@ -578,11 +597,13 @@ function settAntall(n) {
 
 document.querySelectorAll('[data-forhandsvalg]').forEach((b) => {
   b.addEventListener('click', () => {
+    ikkeLengerDagens();
     settAntall(Number(b.dataset.forhandsvalg));
     byggNytt({ nyttMotiv: false });
   });
 });
 $('#eget-antall').addEventListener('change', (e) => {
+  ikkeLengerDagens();
   settAntall(Number(e.target.value) || 100);
   byggNytt({ nyttMotiv: false });
 });
@@ -593,11 +614,13 @@ $('#alternativer').addEventListener('click', (e) => {
   byggNytt({ nyttMotiv: false });
 });
 $('#motiv').addEventListener('change', (e) => {
+  ikkeLengerDagens();
   tilstand.motiv = e.target.value;
   oppdaterPalettTilgang();
   byggNytt({ nyttMotiv: true });
 });
 $('#kuttstil').addEventListener('change', (e) => {
+  ikkeLengerDagens();
   tilstand.kuttstil = e.target.value;
   speilBrytere();
   byggNytt({ nyttMotiv: false });
@@ -607,6 +630,7 @@ $('#palett').addEventListener('change', (e) => {
   byggNytt({ nyttMotiv: true });
 });
 $('#nytt').addEventListener('click', () => {
+  ikkeLengerDagens();
   tilstand.seed = randomSeed();
   byggNytt({ nyttMotiv: true });
 });
@@ -615,12 +639,14 @@ $('#skuffknapp').addEventListener('click', () => {
   $('#skuffknapp').classList.toggle('aktiv', skuff.apen);
   oppdaterSkuff();
   tilpassVisning(visHeleBordet ? bord : arbeidsutsnitt());
+  lagreSnart();
 });
 $('#rydd').addEventListener('click', () => {
   const n = ryddBrikker(puslespill, bord, (b) => spill.erLos(b));
   if (n && tilstand.lyd) lyd.legg();
   oppdaterSkuff();
   tegner.merkSkitten();
+  lagreSnart();
 });
 $('#skufffiltre').addEventListener('click', (e) => {
   const k = e.target.closest('[data-filter]');
@@ -628,6 +654,7 @@ $('#skufffiltre').addEventListener('click', (e) => {
   skuff.filter = k.dataset.filter;
   skuff.rull = 0;
   oppdaterSkuff();
+  lagreSnart();
 });
 $('#stokk').addEventListener('click', () => {
   spreBrikker(puslespill, bord, tilstand.rotasjon);
@@ -641,6 +668,7 @@ $('#stokk').addEventListener('click', () => {
   tilpassVisning(arbeidsutsnitt());
   oppdaterSkuff();
   oppdaterSpillstatus();
+  lagreSnart();
 });
 $('#fasit').addEventListener('click', () => {
   samleBrikker(puslespill);
@@ -655,11 +683,13 @@ $('#spokelse').addEventListener('input', (e) => {
   tegner.spokelseStyrke = tilstand.spokelse;
   oppdaterVanskelighet();
   tegner.merkSkitten();
+  lagreSnart();
 });
 $('#fest').addEventListener('click', () => {
   tilstand.festTilBrett = !tilstand.festTilBrett;
   speilBrytere();
   oppdaterVanskelighet();
+  lagreSnart();
 });
 $('#rotasjon').addEventListener('click', () => {
   tilstand.rotasjon = !tilstand.rotasjon;
@@ -677,6 +707,7 @@ $('#rotasjon').addEventListener('click', () => {
   oppdaterSkuff();
   oppdaterHjelpetekst();
   oppdaterSpillstatus();
+  lagreSnart();
 });
 $('#kanterforst').addEventListener('click', () => {
   tilstand.kanterForst = !tilstand.kanterForst;
@@ -686,6 +717,7 @@ $('#kanterforst').addEventListener('click', () => {
   oppdaterHjelpetekst();
   oppdaterSkuff();
   tegner.merkSkitten();
+  lagreSnart();
 });
 $('#bildeknapp').addEventListener('click', () => {
   tilstand.visBilde = !tilstand.visBilde;
@@ -705,12 +737,246 @@ $('#lydknapp').addEventListener('click', () => {
   lyd.settDempet(!tilstand.lyd);
   $('#lydknapp').classList.toggle('aktiv', tilstand.lyd);
   $('#lydknapp').textContent = tilstand.lyd ? 'Lyd på' : 'Lyd av';
+  lagreSnart();
 });
 $('#ferdig').addEventListener('click', () => { $('#ferdig').hidden = true; });
 $('#panel-veksle').addEventListener('click', () => {
   document.body.classList.toggle('panel-skjult');
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(tilpassCanvas, 60);
+});
+
+// ---------------------------------------------------------------------------
+// Lagring: pågående spill, innstillinger og samlingen
+// ---------------------------------------------------------------------------
+
+/**
+ * Ber om lagring snart. Vi venter litt, så et drag med mange slipp ikke
+ * blir til ett skriv per slipp.
+ */
+function lagreSnart() {
+  if (gjenoppretter) return;
+  clearTimeout(lagringsUr);
+  lagringsUr = setTimeout(lagreNa, 1200);
+}
+
+/**
+ * Skriver tilstanden til IndexedDB.
+ *
+ * Rekkefølgen er ikke tilfeldig. Ved pagehide river nettleseren siden ned
+ * etter første await, og alt som ligger bak den awaiten blir aldri kjørt.
+ * Første versjon lagret innstillingene først og spillet etterpå — da gikk
+ * spillet tapt hver gang appen ble lukket, og klokka hoppet tilbake til
+ * forrige autolagring. Derfor pakkes stillingen synkront, og skrivingen av
+ * selve spillet settes i gang før noe annet.
+ */
+function lagreNa() {
+  clearTimeout(lagringsUr);
+  if (!puslespill || !spill || gjenoppretter) return Promise.resolve();
+
+  const ferdig = spill.erFerdig();
+  const post = ferdig ? null : pakk(tilstand, puslespill, spill, kamera);
+  const valg = {
+    motiv: tilstand.motiv, onsketAntall: tilstand.onsketAntall,
+    kuttstil: tilstand.kuttstil, palett: tilstand.palett,
+    spokelse: tilstand.spokelse, festTilBrett: tilstand.festTilBrett,
+    rotasjon: tilstand.rotasjon, kanterForst: tilstand.kanterForst,
+    visBilde: tilstand.visBilde, lyd: tilstand.lyd,
+    skuffApen: skuff.apen, skuffFilter: skuff.filter,
+  };
+
+  const spillSkriv = (post ? lagring.lagreSpill(post) : lagring.slettSpill())
+    .catch(() => {});
+  const valgSkriv = lagring.lagreInnstillinger(valg).catch(() => {});
+  return Promise.all([spillSkriv, valgSkriv]);
+}
+
+// iOS kan ta livet av en bakgrunnsfane uten forvarsel. Dette er det eneste
+// virkelig pålitelige øyeblikket til å skrive.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') lagreNa();
+});
+window.addEventListener('pagehide', lagreNa);
+
+function brukInnstillinger(v) {
+  if (!v) return;
+  for (const n of ['onsketAntall', 'spokelse']) {
+    if (typeof v[n] === 'number') tilstand[n] = v[n];
+  }
+  for (const n of ['festTilBrett', 'rotasjon', 'kanterForst', 'visBilde', 'lyd']) {
+    if (typeof v[n] === 'boolean') tilstand[n] = v[n];
+  }
+  for (const n of ['motiv', 'kuttstil', 'palett']) {
+    if (typeof v[n] === 'string') tilstand[n] = v[n];
+  }
+  if (typeof v.skuffApen === 'boolean') skuff.apen = v.skuffApen;
+  if (typeof v.skuffFilter === 'string') skuff.filter = v.skuffFilter;
+}
+
+/** Henter fram igjen bildet en lagret økt brukte. */
+async function lastBildeFor(id) {
+  if (!id) return false;
+  try {
+    const post = await lagring.hentBilde(id);
+    if (!post) return false;
+    const bilde = await createImageBitmap(post.blob);
+    settAktivtBilde({ lerret: bilde, navn: post.navn, id: post.id });
+    tilstand.bildeId = post.id;
+    byggMotivvelger();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Starter appen slik man forlot den.
+ * Brikkeformene følger av (motiv, antall, kuttstil, seed), så økten kan
+ * bygges helt opp igjen fra fire tall — posisjonene legges bare oppå.
+ */
+async function gjenopprett() {
+  gjenoppretter = true;
+  try {
+    const [valg, okt, bilder, ferdige] = await Promise.all([
+      lagring.hentInnstillinger().catch(() => null),
+      lagring.hentSpill().catch(() => null),
+      lagring.hentBilder().catch(() => []),
+      lagring.hentFullforte().catch(() => []),
+    ]);
+    mineBilder = bilder;
+    fullforte = ferdige;
+    brukInnstillinger(valg);
+
+    if (okt && okt.oppskrift) {
+      const o = okt.oppskrift;
+      const bildeOk = !o.bildeId || await lastBildeFor(o.bildeId);
+      if (!bildeOk) {
+        // Bildet er slettet. Da finnes ikke puslespillet lenger heller.
+        await lagring.slettSpill().catch(() => {});
+      } else {
+        Object.assign(tilstand, o);
+        if (okt.brytere) Object.assign(tilstand, okt.brytere);
+        settAntall(tilstand.onsketAntall);
+        speilBrytere();
+        byggMotivvelger();
+        oppdaterPalettTilgang();
+        gjenoppretter = false;
+        await byggNytt({ nyttMotiv: true, stilling: okt });
+        oppdaterMineBilder();
+        return true;
+      }
+    }
+
+    settAntall(tilstand.onsketAntall);
+    speilBrytere();
+    byggMotivvelger();
+    oppdaterPalettTilgang();
+  } catch {
+    /* Ny start er et helt greit utfall. */
+  } finally {
+    gjenoppretter = false;
+  }
+  oppdaterMineBilder();
+  return false;
+}
+
+// --- Samlingen -------------------------------------------------------------
+
+function miniatyrAvMotiv(bredde = 300) {
+  const h = Math.max(1, Math.round((bredde * motiv.canvas.height) / motiv.canvas.width));
+  const c = document.createElement('canvas');
+  c.width = bredde;
+  c.height = h;
+  c.getContext('2d').drawImage(motiv.canvas, 0, 0, bredde, h);
+  return c.toDataURL('image/jpeg', 0.75);
+}
+
+async function lagreIFullforte() {
+  const v = oppdaterVanskelighet();
+  try {
+    await lagring.lagreFullfort({
+      id: lagring.nyId(),
+      dato: Date.now(),
+      motiv: motiv.meta.navn,
+      brikker: puslespill.antall,
+      sekunder: Math.round(spill.brukteSekunder()),
+      trekk: spill.trekk,
+      vanskelighet: v ? v.score : null,
+      niva: v ? v.niva.navn : null,
+      dagens: tilstand.dagens || null,
+      miniatyr: miniatyrAvMotiv(),
+    });
+    await lagring.slettSpill();
+    fullforte = await lagring.hentFullforte();
+  } catch {
+    /* ignorer */
+  }
+}
+
+function datostempel(d = new Date()) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
+/** Hvor mange dager på rad dagens puslespill er løst. */
+function dagsrekke() {
+  const dager = new Set(fullforte.filter((f) => f.dagens).map((f) => f.dagens));
+  if (!dager.size) return 0;
+  const d = new Date();
+  let rekke = 0;
+  // Dagens er kanskje ikke løst ennå. Det bryter ikke rekka fram til i går.
+  if (!dager.has(datostempel(d))) d.setDate(d.getDate() - 1);
+  while (dager.has(datostempel(d))) {
+    rekke++;
+    d.setDate(d.getDate() - 1);
+  }
+  return rekke;
+}
+
+function visSamling() {
+  const brikker = fullforte.reduce((s, f) => s + (f.brikker || 0), 0);
+  const tid = fullforte.reduce((s, f) => s + (f.sekunder || 0), 0);
+  const timer = tid / 3600;
+  const tall = [
+    [fullforte.length, 'fullført'],
+    [brikker.toLocaleString('no'), 'brikker lagt'],
+    [timer >= 1 ? timer.toFixed(1) + ' t' : Math.round(tid / 60) + ' min', 'brukt'],
+    [dagsrekke(), 'dager på rad'],
+  ];
+  $('#samling-tall').innerHTML = tall
+    .map(([v, n]) => '<div class="talltavle"><b>' + v + '</b><span>' + n + '</span></div>').join('');
+
+  $('#samling-liste').innerHTML = fullforte.length
+    ? fullforte.map((f) => `
+      <figure class="fullfortkort">
+        ${f.dagens ? '<span class="merke">Dagens</span>' : ''}
+        <img src="${f.miniatyr}" alt="">
+        <figcaption>
+          <b>${f.motiv || 'Puslespill'}</b>
+          ${f.brikker} brikker &middot; ${formaterTid(f.sekunder)}<br>
+          ${new Date(f.dato).toLocaleDateString('no')}${f.niva ? ' &middot; ' + f.niva : ''}
+        </figcaption>
+      </figure>`).join('')
+    : '<p class="samling-tom">Ingen ferdige puslespill ennå.<br>Legg den siste brikken, så dukker det opp her.</p>';
+
+  $('#samling').hidden = false;
+}
+
+$('#samlingknapp').addEventListener('click', visSamling);
+$('#samling-lukk').addEventListener('click', () => { $('#samling').hidden = true; });
+
+$('#dagens').addEventListener('click', () => {
+  const o = dagensOppskrift();
+  Object.assign(tilstand, o);
+  tilstand.bildeId = null;
+  tilstand.rotasjon = false;
+  tilstand.kanterForst = false;
+  settAntall(o.onsketAntall);
+  speilBrytere();
+  byggMotivvelger();
+  oppdaterPalettTilgang();
+  byggNytt({ nyttMotiv: true });
 });
 
 // ---------------------------------------------------------------------------
@@ -753,7 +1019,9 @@ function lukkBeskjaering() {
  * bli strukket for å passe inn i et liggende puslespill.
  */
 function brukBilde(lerret, navn, id) {
+  ikkeLengerDagens();
   settAktivtBilde({ lerret, navn, id });
+  tilstand.bildeId = id;
   tilstand.sideforhold = lerret.width / lerret.height;
   tilstand.motiv = 'eget';
   byggMotivvelger();
@@ -855,6 +1123,10 @@ $('#minebilder-liste').addEventListener('click', async (e) => {
   if (slett) {
     e.stopPropagation();
     await lagring.slettBilde(slett.dataset.slett).catch(() => {});
+    if (tilstand.bildeId === slett.dataset.slett) {
+      tilstand.bildeId = null;
+      await lagring.slettSpill().catch(() => {});
+    }
     mineBilder = await lagring.hentBilder().catch(() => mineBilder);
     oppdaterMineBilder();
     return;
@@ -920,14 +1192,11 @@ $('#oppsett').innerHTML = Object.entries(OPPSETT)
 
 byggMotivvelger();
 oppdaterPalettTilgang();
-settAntall(100);
-speilBrytere();
 tilpassCanvas();
-byggNytt();
 
-lagring.hentBilder()
-  .then((liste) => { mineBilder = liste; oppdaterMineBilder(); })
-  .catch(() => {});
+gjenopprett().then((fortsatte) => {
+  if (!fortsatte) byggNytt();
+});
 
 if ('serviceWorker' in navigator) {
   // Fantes det allerede en service worker da siden lastet, betyr et bytte at
