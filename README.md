@@ -44,8 +44,32 @@ js/art/motiver.js   Registeret over alle motivtyper.
 
 ## Grensesnittet
 
-Topplinja holder det man trenger mens man pusler: fremdrift, klokke, og tre
-snarveier (Rydd, Skuff, Bilde). Alt oppsett bor i en meny som skyves inn fra
+### Startskjermen: to valg
+
+Appen åpner på en startskjerm med to spørsmål og ingenting annet: **hvilket
+bilde**, og **hvor mange brikker**. Bildene vises som store kort med ekte
+miniatyrer av motivene, ikke som en nedtrekksmeny – et barn skal kunne peke
+på dinosauren. Brikketallene har ord ved siden av tallet, fra «Helt lett»
+(12) til «Verst som finnes» (500).
+
+Så er det én stor knapp: **Pusle!**
+
+Alt det detaljerte finnes fortsatt, men bak «Flere valg». Har du et
+puslespill på gang, står «Fortsett der du slapp» øverst med motiv,
+brikketall og tid.
+
+Dette kom etter at appen ble prøvd på en ekte iPad. Den første versjonen la
+alle valgene foran brukeren samtidig, og det er feil svar når appen primært
+er for barn.
+
+Miniatyrene tegnes én om gangen. Sju motiv tar rundt 200 ms til sammen;
+deles de opp, er skjermen framme med én gang og fylles ut mens man ser
+på den.
+
+### Mens man pusler
+
+Topplinja holder det man trenger: fremdrift, klokke, og fire snarveier
+(Hjem, Rydd, Skuff, Bilde). Alt oppsett bor i en meny som skyves inn fra
 siden.
 
 Det var ikke slik i starten. Panelet vokste for hver fase til det dekket

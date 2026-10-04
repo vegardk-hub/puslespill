@@ -809,6 +809,203 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// Startskjermen
+// ---------------------------------------------------------------------------
+//
+// To valg: hvilket bilde, og hvor mange brikker. Appen er primært for barn,
+// og da er et dusin nedtrekksmenyer feil svar. Alt det detaljerte finnes
+// fortsatt, men bak «Flere valg».
+
+/** Brikketall på startskjermen, med ord et barn kan forstå. */
+const STARTANTALL = [
+  { n: 12, ord: 'Helt lett' },
+  { n: 24, ord: 'Lett' },
+  { n: 50, ord: 'Passe' },
+  { n: 100, ord: 'Litt vrient' },
+  { n: 200, ord: 'Vanskelig' },
+  { n: 500, ord: 'Verst som finnes' },
+];
+
+/** Rekkefølgen bildene vises i. Figurene først – de er for barna. */
+const STARTMOTIV = ['dinosaur', 'hus', 'bil', 'rakett', 'bat', 'katt', 'neon'];
+
+const miniatyrer = new Map();
+let startKlar = false;
+
+function byggStartantall() {
+  $('#start-antall').innerHTML = STARTANTALL.map((a) => `
+    <button class="antallknapp" data-startantall="${a.n}">
+      <b>${a.n}</b><span>${a.ord}</span>
+    </button>`).join('');
+  merkStartvalg();
+}
+
+function byggStartmotiv() {
+  const kort = STARTMOTIV
+    .filter((n) => MOTIVER[n])
+    .map((n) => `
+      <button class="motivkort" data-startmotiv="${n}" data-miniatyr="${n}">
+        <span>${MOTIVER[n].navn}</span>
+      </button>`);
+
+  kort.push(`
+    <button class="motivkort eget" data-startmotiv="tilfeldig">
+      <b>?</b><span>Overraskelse</span>
+    </button>`);
+
+  const eget = hentAktivtBilde();
+  kort.push(eget
+    ? `<button class="motivkort" data-startmotiv="eget" data-egetbilde="1">
+         <span>${eget.navn || 'Eget bilde'}</span>
+       </button>`
+    : `<button class="motivkort eget" data-startmotiv="nytt-bilde">
+         <b>+</b><span>Eget bilde</span>
+       </button>`);
+
+  $('#start-motiv').innerHTML = kort.join('');
+  fyllMiniatyrer();
+  merkStartvalg();
+}
+
+/**
+ * Tegner miniatyrene én om gangen.
+ * Sju motiv tar rundt 200 ms til sammen. Deles de opp, er skjermen framme
+ * med én gang og fylles ut mens man ser på den.
+ */
+function fyllMiniatyrer() {
+  const igjen = [...$('#start-motiv').querySelectorAll('[data-miniatyr]')];
+
+  // Eget bilde har allerede et ferdig lerret å vise.
+  const egetKort = $('#start-motiv').querySelector('[data-egetbilde]');
+  const eget = hentAktivtBilde();
+  if (egetKort && eget) {
+    const c = document.createElement('canvas');
+    c.width = 280;
+    c.height = Math.round((280 * eget.lerret.height) / eget.lerret.width);
+    c.getContext('2d').drawImage(eget.lerret, 0, 0, c.width, c.height);
+    egetKort.prepend(c);
+  }
+
+  const neste = () => {
+    const kort = igjen.shift();
+    if (!kort) return;
+    const n = kort.dataset.miniatyr;
+    try {
+      if (!miniatyrer.has(n)) {
+        miniatyrer.set(n, genererMotiv(n, 280, 187, 'forhand-' + n).canvas);
+      }
+      const kilde = miniatyrer.get(n);
+      const c = document.createElement('canvas');
+      c.width = kilde.width;
+      c.height = kilde.height;
+      c.getContext('2d').drawImage(kilde, 0, 0);
+      kort.prepend(c);
+    } catch {
+      /* hopp over motiv som ikke lar seg tegne */
+    }
+    setTimeout(neste, 0);
+  };
+  setTimeout(neste, 0);
+}
+
+function merkStartvalg() {
+  for (const k of document.querySelectorAll('[data-startmotiv]')) {
+    k.classList.toggle('aktiv', k.dataset.startmotiv === tilstand.motiv);
+  }
+  for (const k of document.querySelectorAll('[data-startantall]')) {
+    k.classList.toggle('aktiv', Number(k.dataset.startantall) === tilstand.onsketAntall);
+  }
+}
+
+function visStart() {
+  if (!startKlar) {
+    byggStartantall();
+    byggStartmotiv();
+    startKlar = true;
+  } else {
+    merkStartvalg();
+  }
+  oppdaterFortsett();
+  $('#start').hidden = false;
+  settMeny(false);
+}
+
+function skjulStart() {
+  $('#start').hidden = true;
+}
+
+/** Knappen øverst vises bare når det faktisk finnes noe å fortsette på. */
+async function oppdaterFortsett() {
+  let okt = null;
+  try {
+    okt = await lagring.hentSpill();
+  } catch {
+    /* ingen lagring */
+  }
+  const knapp = $('#fortsett');
+  if (!okt || !okt.oppskrift) {
+    knapp.hidden = true;
+    return;
+  }
+  const navn = MOTIVER[okt.oppskrift.motiv]?.navn || 'Puslespill';
+  const sek = Math.round(okt.fremdrift?.sekunder || 0);
+  $('#fortsett-tekst').textContent =
+    `${navn} · ${okt.stilling?.x?.length || 0} brikker · ${formaterTid(sek)}`;
+  knapp.hidden = false;
+  knapp.dataset.okt = '1';
+}
+
+$('#start-motiv').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-startmotiv]');
+  if (!k) return;
+  if (k.dataset.startmotiv === 'nytt-bilde') {
+    $('#bildefil').click();
+    return;
+  }
+  ikkeLengerDagens();
+  tilstand.motiv = k.dataset.startmotiv;
+  byggMotivvelger();
+  oppdaterPalettTilgang();
+  merkStartvalg();
+});
+
+$('#start-antall').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-startantall]');
+  if (!k) return;
+  ikkeLengerDagens();
+  settAntall(Number(k.dataset.startantall));
+  merkStartvalg();
+});
+
+$('#start-spill').addEventListener('click', async () => {
+  tilstand.seed = randomSeed();
+  skjulStart();
+  await byggNytt({ nyttMotiv: true });
+});
+
+$('#fortsett').addEventListener('click', async () => {
+  skjulStart();
+  const fortsatte = await gjenopprett({ byggOgsa: true });
+  if (!fortsatte) await byggNytt({ nyttMotiv: true });
+});
+
+$('#start-flere').addEventListener('click', () => settMeny(true));
+$('#start-samling').addEventListener('click', visSamling);
+$('#hjemknapp').addEventListener('click', () => { lagreNa(); visStart(); });
+$('#ferdig-nytt').addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('#ferdig').hidden = true;
+  konfetti.stopp();
+  visStart();
+});
+$('#ferdig-lukk').addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('#ferdig').hidden = true;
+  konfetti.stopp();
+  tegner.merkSkitten();
+});
+
+// ---------------------------------------------------------------------------
 // Lagring: pågående spill, innstillinger og samlingen
 // ---------------------------------------------------------------------------
 
@@ -896,7 +1093,7 @@ async function lastBildeFor(id) {
  * Brikkeformene følger av (motiv, antall, kuttstil, seed), så økten kan
  * bygges helt opp igjen fra fire tall — posisjonene legges bare oppå.
  */
-async function gjenopprett() {
+async function gjenopprett({ byggOgsa = false } = {}) {
   gjenoppretter = true;
   try {
     const [valg, okt, bilder, ferdige] = await Promise.all([
@@ -909,7 +1106,7 @@ async function gjenopprett() {
     fullforte = ferdige;
     brukInnstillinger(valg);
 
-    if (okt && okt.oppskrift) {
+    if (byggOgsa && okt && okt.oppskrift) {
       const o = okt.oppskrift;
       const bildeOk = !o.bildeId || await lastBildeFor(o.bildeId);
       if (!bildeOk) {
@@ -1089,6 +1286,8 @@ function brukBilde(lerret, navn, id) {
   byggMotivvelger();
   oppdaterPalettTilgang();
   oppdaterMineBilder();
+  startKlar = false;             // miniatyren for eget bilde må tegnes på nytt
+  skjulStart();
   return byggNytt({ nyttMotiv: true });
 }
 
@@ -1257,9 +1456,7 @@ byggMotivvelger();
 oppdaterPalettTilgang();
 tilpassCanvas();
 
-gjenopprett().then((fortsatte) => {
-  if (!fortsatte) byggNytt();
-});
+gjenopprett().then(() => visStart());
 
 if ('serviceWorker' in navigator) {
   // Fantes det allerede en service worker da siden lastet, betyr et bytte at

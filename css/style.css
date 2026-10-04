@@ -720,3 +720,194 @@ input[type="range"] {
   .spillstatus { font-size: 12px; }
   #bildeknapp { display: none; }
 }
+
+/* --- Startskjermen ---------------------------------------------------------
+ * To valg: hvilket bilde, og hvor mange brikker. Ingenting annet.
+ * Appen er primært for barn, og da er et dusin nedtrekksmenyer feil svar.
+ * Alt det detaljerte finnes fortsatt, men bak «Flere valg».
+ */
+
+#start {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(34, 224, 255, 0.10), transparent 55%),
+    radial-gradient(circle at 85% 100%, rgba(255, 43, 214, 0.10), transparent 55%),
+    #07070e;
+}
+
+#start[hidden] { display: none; }
+
+.start-innhold {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 26px 20px 34px;
+  padding-top: calc(26px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+}
+
+.start-tittel {
+  margin: 0 0 18px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--neon);
+  text-shadow: 0 0 26px rgba(34, 224, 255, 0.55);
+}
+
+.start-sporsmal {
+  margin: 24px 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--tekst);
+}
+
+/* Fortsett står øverst når det finnes noe å fortsette på. */
+.fortsettknapp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 18px;
+  text-align: left;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(34, 224, 255, 0.2), rgba(255, 43, 214, 0.18));
+  border-color: rgba(120, 220, 255, 0.55);
+}
+
+.fortsettknapp[hidden] { display: none; }
+.fortsettknapp b { font-size: 17px; }
+.fortsettknapp span { font-size: 13px; color: var(--dempet); font-variant-numeric: tabular-nums; }
+
+/* --- Bildevalg --- */
+
+.motivrutenett {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.motivkort {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.04);
+  min-height: 0;
+  line-height: 0;
+}
+
+.motivkort canvas,
+.motivkort img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.motivkort span {
+  display: block;
+  padding: 9px 10px;
+  font-size: 14px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--tekst);
+}
+
+.motivkort.aktiv {
+  border-color: var(--neon);
+  box-shadow: 0 0 0 2px var(--neon), 0 0 22px rgba(34, 224, 255, 0.45);
+}
+
+/* Kortet for «ta et eget bilde» har ingen miniatyr å vise. */
+.motivkort.eget {
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  aspect-ratio: auto;
+  padding: 18px 10px;
+  border-style: dashed;
+}
+
+.motivkort.eget b { font-size: 26px; line-height: 1; color: var(--neon); }
+
+/* --- Brikkevalg --- */
+
+.antallvalg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 10px;
+}
+
+.antallknapp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 72px;
+  padding: 10px 8px;
+  border-radius: 13px;
+}
+
+.antallknapp b {
+  font-size: 23px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.antallknapp span {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--dempet);
+}
+
+.antallknapp.aktiv span { color: #fff; }
+
+/* --- Start --- */
+
+.startknapp {
+  display: block;
+  width: 100%;
+  margin: 26px 0 16px;
+  min-height: 68px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(34, 224, 255, 0.3), rgba(255, 43, 214, 0.3));
+  border-color: rgba(120, 220, 255, 0.6);
+  box-shadow: 0 0 34px rgba(34, 224, 255, 0.28);
+}
+
+.start-bunn {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.start-bunn button { background: none; border-color: transparent; color: var(--dempet); }
+
+.ferdigvalg { justify-content: center; margin-top: 16px; }
+
+/* Lav skjerm (iPad i landskap): stram inn så «Pusle!» alltid er framme
+ * uten at man må bla. Knappen er hele poenget med skjermen. */
+@media (max-height: 850px) {
+  .start-innhold { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+  .start-tittel { margin-bottom: 12px; font-size: 23px; }
+  .start-sporsmal { margin: 16px 0 8px; font-size: 15px; }
+  .fortsettknapp { min-height: 56px; padding: 10px 16px; }
+  .motivkort span { padding: 6px 8px; font-size: 13px; }
+  .antallknapp { min-height: 62px; }
+  .antallknapp b { font-size: 20px; }
+  .startknapp { margin: 18px 0 10px; min-height: 60px; font-size: 20px; }
+}

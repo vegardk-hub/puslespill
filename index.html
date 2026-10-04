@@ -31,11 +31,38 @@
   </div>
 
   <div class="snarveier">
+    <button id="hjemknapp" title="Tilbake til startskjermen" aria-label="Tilbake til startskjermen">&#8962;</button>
     <button id="rydd" title="Legg løse brikker i rutenett">Rydd</button>
     <button id="skuffknapp" aria-pressed="true" title="Vis eller skjul brikkeskuffen">Skuff</button>
     <button id="bildeknapp" aria-pressed="false" title="Vis motivet i hjørnet">Bilde</button>
   </div>
 </header>
+
+<!-- Startskjermen: to valg, og ingenting annet. Alt det andre bor bak
+     «Flere valg» for den som vil ha det. -->
+<div id="start" hidden>
+  <div class="start-innhold">
+    <h1 class="start-tittel">Puslespill</h1>
+
+    <button id="fortsett" class="fortsettknapp" hidden>
+      <b>Fortsett der du slapp</b>
+      <span id="fortsett-tekst"></span>
+    </button>
+
+    <h2 class="start-sporsmal">Velg et bilde</h2>
+    <div id="start-motiv" class="motivrutenett"></div>
+
+    <h2 class="start-sporsmal">Hvor mange brikker?</h2>
+    <div id="start-antall" class="antallvalg"></div>
+
+    <button id="start-spill" class="startknapp">Pusle!</button>
+
+    <div class="start-bunn">
+      <button id="start-flere">Flere valg</button>
+      <button id="start-samling">Samling</button>
+    </div>
+  </div>
+</div>
 
 <div id="menyskygge" hidden></div>
 
@@ -175,7 +202,10 @@
     <div class="ferdigikon">&#9733;</div>
     <h2>Ferdig!</h2>
     <p id="ferdig-tekst"></p>
-    <p class="hint">Trykk for å lukke</p>
+    <div class="rad ferdigvalg">
+      <button id="ferdig-nytt" class="primar">Nytt puslespill</button>
+      <button id="ferdig-lukk">Se bildet</button>
+    </div>
   </div>
 </div>
 
