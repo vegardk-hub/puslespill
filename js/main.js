@@ -59,6 +59,7 @@ let beskjaerer = null;
 let venterBilde = null;
 let mineBilder = [];
 let fullforte = [];
+let bildeFraStart = false;
 let lagringsUr = 0;
 let gjenoppretter = false;
 
@@ -853,14 +854,22 @@ function byggStartmotiv() {
       <b>?</b><span>Overraskelse</span>
     </button>`);
 
-  const eget = hentAktivtBilde();
-  kort.push(eget
-    ? `<button class="motivkort" data-startmotiv="eget" data-egetbilde="1">
-         <span>${eget.navn || 'Eget bilde'}</span>
-       </button>`
-    : `<button class="motivkort eget" data-startmotiv="nytt-bilde">
-         <b>+</b><span>Eget bilde</span>
-       </button>`);
+  // Ett kort per lagret bilde. Miniatyren ligger allerede i databasen, så
+  // de koster ingenting å vise.
+  for (const b of mineBilder) {
+    kort.push(`
+      <button class="motivkort" data-startmotiv="bilde" data-bildeid="${b.id}">
+        <img src="${b.miniatyr}" alt="">
+        <span>${(b.navn || 'Eget bilde').slice(0, 22)}</span>
+      </button>`);
+  }
+
+  // Pluss-kortet skal ALLTID være der. Før erstattet bildet ditt det, og
+  // da fantes det ingen vei til bilde nummer to.
+  kort.push(`
+    <button class="motivkort eget" data-startmotiv="nytt-bilde">
+      <b>+</b><span>${mineBilder.length ? 'Nytt bilde' : 'Eget bilde'}</span>
+    </button>`);
 
   $('#start-motiv').innerHTML = kort.join('');
   fyllMiniatyrer();
@@ -874,17 +883,6 @@ function byggStartmotiv() {
  */
 function fyllMiniatyrer() {
   const igjen = [...$('#start-motiv').querySelectorAll('[data-miniatyr]')];
-
-  // Eget bilde har allerede et ferdig lerret å vise.
-  const egetKort = $('#start-motiv').querySelector('[data-egetbilde]');
-  const eget = hentAktivtBilde();
-  if (egetKort && eget) {
-    const c = document.createElement('canvas');
-    c.width = 280;
-    c.height = Math.round((280 * eget.lerret.height) / eget.lerret.width);
-    c.getContext('2d').drawImage(eget.lerret, 0, 0, c.width, c.height);
-    egetKort.prepend(c);
-  }
 
   const neste = () => {
     const kort = igjen.shift();
@@ -910,7 +908,10 @@ function fyllMiniatyrer() {
 
 function merkStartvalg() {
   for (const k of document.querySelectorAll('[data-startmotiv]')) {
-    k.classList.toggle('aktiv', k.dataset.startmotiv === tilstand.motiv);
+    const erBilde = k.dataset.startmotiv === 'bilde';
+    k.classList.toggle('aktiv', erBilde
+      ? tilstand.motiv === 'eget' && tilstand.bildeId === k.dataset.bildeid
+      : k.dataset.startmotiv === tilstand.motiv);
   }
   for (const k of document.querySelectorAll('[data-startantall]')) {
     k.classList.toggle('aktiv', Number(k.dataset.startantall) === tilstand.onsketAntall);
@@ -955,14 +956,26 @@ async function oppdaterFortsett() {
   knapp.dataset.okt = '1';
 }
 
-$('#start-motiv').addEventListener('click', (e) => {
+$('#start-motiv').addEventListener('click', async (e) => {
   const k = e.target.closest('[data-startmotiv]');
   if (!k) return;
+
   if (k.dataset.startmotiv === 'nytt-bilde') {
+    bildeFraStart = true;
     $('#bildefil').click();
     return;
   }
+
   ikkeLengerDagens();
+
+  if (k.dataset.startmotiv === 'bilde') {
+    const post = mineBilder.find((b) => b.id === k.dataset.bildeid);
+    // Bildet velges bare - det er «Pusle!» som starter spillet.
+    if (post) await velgLagret(post, { startSpill: false });
+    merkStartvalg();
+    return;
+  }
+
   tilstand.motiv = k.dataset.startmotiv;
   byggMotivvelger();
   oppdaterPalettTilgang();
@@ -1277,7 +1290,11 @@ function lukkBeskjaering() {
  * Sideforholdet følger bildet, ikke omvendt – et stående bilde skal ikke
  * bli strukket for å passe inn i et liggende puslespill.
  */
-function brukBilde(lerret, navn, id) {
+/**
+ * @param {boolean} opts.startSpill  false når man bare velger på startskjermen
+ * @param {boolean} opts.nyttKort    true når et helt nytt bilde er kommet til
+ */
+function brukBilde(lerret, navn, id, { startSpill = true, nyttKort = false } = {}) {
   ikkeLengerDagens();
   settAktivtBilde({ lerret, navn, id });
   tilstand.bildeId = id;
@@ -1286,7 +1303,11 @@ function brukBilde(lerret, navn, id) {
   byggMotivvelger();
   oppdaterPalettTilgang();
   oppdaterMineBilder();
-  startKlar = false;             // miniatyren for eget bilde må tegnes på nytt
+  if (nyttKort) byggStartmotiv();
+  if (!startSpill) {
+    merkStartvalg();
+    return Promise.resolve();
+  }
   skjulStart();
   return byggNytt({ nyttMotiv: true });
 }
@@ -1309,13 +1330,17 @@ async function lagreOgBruk() {
   } catch {
     // Blokkert lagring skal ikke hindre at bildet brukes nå.
   }
-  await brukBilde(lerret, navn, id);
+  // Kom man fra startskjermen, blir man der - med det nye bildet valgt.
+  // Da kan man legge til flere, og velge brikketall før man setter i gang.
+  const fraStart = bildeFraStart;
+  bildeFraStart = false;
+  await brukBilde(lerret, navn, id, { startSpill: !fraStart, nyttKort: true });
 }
 
-async function velgLagret(post) {
+async function velgLagret(post, opts = {}) {
   try {
     const bilde = await createImageBitmap(post.blob);
-    await brukBilde(bilde, post.navn, post.id);
+    await brukBilde(bilde, post.navn, post.id, opts);
   } catch {
     /* ignorer */
   }
@@ -1346,7 +1371,10 @@ function varsleOmFlateFelt(lerret) {
   return score;
 }
 
-$('#velgbilde').addEventListener('click', () => $('#bildefil').click());
+$('#velgbilde').addEventListener('click', () => {
+  bildeFraStart = false;
+  $('#bildefil').click();
+});
 
 $('#bildefil').addEventListener('change', async (e) => {
   const fil = e.target.files && e.target.files[0];
@@ -1390,6 +1418,7 @@ $('#minebilder-liste').addEventListener('click', async (e) => {
     }
     mineBilder = await lagring.hentBilder().catch(() => mineBilder);
     oppdaterMineBilder();
+    byggStartmotiv();
     return;
   }
   const kort = e.target.closest('[data-bilde]');

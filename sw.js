@@ -15,7 +15,7 @@
 // serveren. Kostnaden er en 304, og gevinsten er at filene alltid følger
 // hverandre.
 
-const CACHE = 'puslespill-v11';
+const CACHE = 'puslespill-v12';
 const NETT_FRIST_MS = 2500;
 
 const SKALL = [

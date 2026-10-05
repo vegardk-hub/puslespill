@@ -54,6 +54,16 @@ på dinosauren. Brikketallene har ord ved siden av tallet, fra «Helt lett»
 
 Så er det én stor knapp: **Pusle!**
 
+Egne bilder får hvert sitt kort i den samme ruta, og helt til slutt står
+det alltid et **«+ Nytt bilde»**. Det siste er viktigere enn det høres ut:
+i første versjon erstattet bildet ditt pluss-kortet, og da fantes det ingen
+vei til bilde nummer to uten å lete seg fram til menyen.
+
+Å trykke på et bildekort velger det bare – det er «Pusle!» som starter
+spillet. Legger du til et nytt bilde fra startskjermen, blir du værende der
+med det nye valgt, så du kan legge til flere og velge brikketall før du
+setter i gang. Bilder slettes i menyen, under «Flere valg».
+
 Alt det detaljerte finnes fortsatt, men bak «Flere valg». Har du et
 puslespill på gang, står «Fortsett der du slapp» øverst med motiv,
 brikketall og tid.
