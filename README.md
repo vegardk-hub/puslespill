@@ -7,6 +7,20 @@ Motivene genereres i appen, eller du bruker dine egne bilder.
 brikkene lar seg finne, du kan bruke dine egne bilder, vanskelighetsgraden
 går fra barnehage til beinhard, og alt overlever at appen lukkes.
 
+## Full skjerm på iPad
+
+Åpner du lenken i Safari, blir Safaris eget grensesnitt liggende rundt
+brettet. Ingen nettside kan skjule det – iOS gir ikke lov.
+
+Det som virker er **Del-knappen → «Legg til på Hjem-skjerm»**. Da starter
+appen i standalone, Safari forsvinner helt, og brettet får hele skjermen.
+Manifestet og `apple-mobile-web-app-capable` er satt opp for nettopp det, og
+`viewport-fit=cover` med safe-area-innrykk gjør at innholdet går helt ut i
+kantene uten å havne under statuslinja.
+
+Appen viser et lite hint om dette på startskjermen, men bare når den faktisk
+kjører i en nettleser. Starter den fra hjemskjermen, sier den ingenting.
+
 ## Kjøre lokalt
 
 ```bash

@@ -1,19 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <radialGradient id="bak" cx="50%" cy="50%" r="60%">
-      <stop offset="0" stop-color="#231a4a"/>
-      <stop offset="1" stop-color="#07070e"/>
+    <radialGradient id="bak" cx="50%" cy="50%" r="62%">
+      <stop offset="0" stop-color="#2a2060"/><stop offset="1" stop-color="#0c0a1c"/>
     </radialGradient>
-    <linearGradient id="brikke" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9ff4ff"/>
-      <stop offset="1" stop-color="#ff8ae6"/>
-    </linearGradient>
-    <filter id="glod" x="-45%" y="-45%" width="190%" height="190%">
-      <feGaussianBlur stdDeviation="16" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <linearGradient id="g00" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ae8ff"/><stop offset="1" stop-color="#1496d2"/></linearGradient><linearGradient id="g01" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6ee1"/><stop offset="1" stop-color="#be2896"/></linearGradient><linearGradient id="g10" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd65a"/><stop offset="1" stop-color="#d78c14"/></linearGradient><linearGradient id="g11" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6eeb96"/><stop offset="1" stop-color="#1ea05f"/></linearGradient>
+    <filter id="glod" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="15.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <rect width="512" height="512" fill="url(#bak)"/>
-  <path filter="url(#glod)" fill="url(#brikke)" stroke="#22e0ff" stroke-width="5"
-        d="M132 120 h84 a30 30 0 0 1 40 -26 a30 30 0 0 1 40 26 h84 v84 a30 30 0 0 0 26 40 a30 30 0 0 0 -26 40 v84 h-84 a30 30 0 0 1 -40 26 a30 30 0 0 1 -40 -26 h-84 v-84 a30 30 0 0 0 -26 -40 a30 30 0 0 0 26 -40 Z"/>
+  <g filter="url(#glod)"><path d="M 75.78 75.78 C 132.10 75.78 188.42 75.78 244.74 75.78 C 247.73 109.57 262.45 155.13 226.82 141.30 C 191.19 127.46 191.19 198.72 226.82 176.93 C 262.45 155.13 247.06 210.94 244.74 244.74 C 210.94 244.93 161.40 231.40 178.56 262.63 C 195.73 293.85 133.28 293.85 147.34 262.63 C 161.40 231.40 109.57 243.67 75.78 244.74 C 75.78 188.42 75.78 132.10 75.78 75.78 Z" fill="url(#g00)" stroke="#0a0c1a" stroke-width="8.2"/><path d="M 267.26 75.78 C 323.58 75.78 379.90 75.78 436.22 75.78 C 436.22 132.10 436.22 188.42 436.22 244.74 C 402.43 242.14 354.51 260.27 370.31 224.61 C 386.10 188.94 314.77 188.94 334.64 224.61 C 354.51 260.27 301.06 246.68 267.26 244.74 C 269.59 210.94 284.98 155.13 249.35 176.93 C 213.71 198.72 213.71 127.46 249.35 141.30 C 284.98 155.13 270.26 109.57 267.26 75.78 Z" fill="url(#g01)" stroke="#0a0c1a" stroke-width="8.2"/><path d="M 75.78 267.26 C 109.57 266.19 161.40 253.93 147.34 285.16 C 133.28 316.38 195.73 316.38 178.56 285.16 C 161.40 253.93 210.94 267.46 244.74 267.26 C 243.82 301.06 258.38 350.96 226.76 333.20 C 195.14 315.45 195.14 378.69 226.76 364.82 C 258.38 350.96 243.60 402.43 244.74 436.22 C 188.42 436.22 132.10 436.22 75.78 436.22 C 75.78 379.90 75.78 323.58 75.78 267.26 Z" fill="url(#g10)" stroke="#0a0c1a" stroke-width="8.2"/><path d="M 267.26 267.26 C 301.06 269.21 354.51 282.80 334.64 247.13 C 314.77 211.47 386.10 211.47 370.31 247.13 C 354.51 282.80 402.43 264.67 436.22 267.26 C 436.22 323.58 436.22 379.90 436.22 436.22 C 379.90 436.22 323.58 436.22 267.26 436.22 C 266.13 402.43 280.91 350.96 249.29 364.82 C 217.67 378.69 217.67 315.45 249.29 333.20 C 280.91 350.96 266.34 301.06 267.26 267.26 Z" fill="url(#g11)" stroke="#0a0c1a" stroke-width="8.2"/></g>
 </svg>

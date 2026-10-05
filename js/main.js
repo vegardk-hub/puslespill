@@ -918,6 +918,38 @@ function merkStartvalg() {
   }
 }
 
+/**
+ * Hintet om full skjerm.
+ *
+ * iOS lar ingen nettside skjule Safari-grensesnittet. Det eneste som virker
+ * er «Legg til på Hjem-skjerm» - da starter appen i standalone og nettleseren
+ * forsvinner helt. Derfor sier vi det, men bare til den som trenger det.
+ */
+function erEgenApp() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         window.matchMedia('(display-mode: fullscreen)').matches ||
+         window.navigator.standalone === true;
+}
+
+function oppdaterHeltskjermHint() {
+  let avvist = false;
+  try {
+    avvist = localStorage.getItem('puslespill-hint-skjult') === '1';
+  } catch {
+    // Blokkert lagring. Da viser vi hintet; det er bare en liten plage.
+  }
+  $('#heltskjerm-hint').hidden = erEgenApp() || avvist;
+}
+
+$('#heltskjerm-lukk').addEventListener('click', () => {
+  $('#heltskjerm-hint').hidden = true;
+  try {
+    localStorage.setItem('puslespill-hint-skjult', '1');
+  } catch {
+    /* ikke viktig nok til a bry seg */
+  }
+});
+
 function visStart() {
   if (!startKlar) {
     byggStartantall();
@@ -927,6 +959,7 @@ function visStart() {
     merkStartvalg();
   }
   oppdaterFortsett();
+  oppdaterHeltskjermHint();
   $('#start').hidden = false;
   settMeny(false);
 }
