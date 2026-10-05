@@ -821,8 +821,8 @@ input[type="range"] {
 
 .motivrutenett {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 9px;
 }
 
 .motivkort {
@@ -845,8 +845,8 @@ input[type="range"] {
 
 .motivkort span {
   display: block;
-  padding: 9px 10px;
-  font-size: 14px;
+  padding: 7px 8px;
+  font-size: 13px;
   line-height: 1.2;
   text-align: center;
   color: var(--tekst);
@@ -934,12 +934,12 @@ input[type="range"] {
 @media (max-height: 850px) {
   .start-innhold { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
   .start-tittel { margin-bottom: 12px; font-size: 23px; }
-  .start-sporsmal { margin: 16px 0 8px; font-size: 15px; }
+  .start-sporsmal { margin: 12px 0 7px; font-size: 15px; }
   .fortsettknapp { min-height: 56px; padding: 10px 16px; }
   .motivkort span { padding: 6px 8px; font-size: 13px; }
   .antallknapp { min-height: 62px; }
   .antallknapp b { font-size: 20px; }
-  .startknapp { margin: 18px 0 10px; min-height: 60px; font-size: 20px; }
+  .startknapp { margin: 13px 0 8px; min-height: 58px; font-size: 20px; }
 }
 
 /* --- Hint om full skjerm ---------------------------------------------------

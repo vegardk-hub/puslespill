@@ -316,50 +316,52 @@ har ingen server å sende dem til.
 
 ## Motiv
 
-| Motiv | Gruppe | Typisk puslbarhet |
-|---|---|---:|
-| Neon | Abstrakt | 100 % |
-| Dinosaur | Figurer | 74 % |
-| Hus | Figurer | 81 % |
-| Bil | Figurer | 80 % |
-| Rakett | Figurer | 61 % |
-| Seilbåt | Figurer | 63 % |
-| Katt | Figurer | 75 % |
+Tretten motiv, alle tegnet med kode. Puslbarheten er målt lokal kontrast
+over hele flaten – snitt av fem seeds:
+
+| Motiv | Puslbarhet | |
+|---|---:|---|
+| Neon | 100 % | abstrakt |
+| **Rommet** | **96 %** | ny |
+| **Under vann** | **95 %** | ny |
+| **Blomstereng** | **94 %** | ny |
+| **Bondegård** | **91 %** | ny |
+| **Jungel** | **86 %** | ny |
+| **Byen** | **86 %** | ny |
+| Bil | 82 % | |
+| Hus | 80 % | |
+| Dinosaur | 74 % | |
+| Katt | 73 % | |
+| Seilbåt | 68 % | |
+| Rakett | 64 % | |
+
+### Hvorfor de nye er lettere å pusle
+
+Rakett er kult, men var vanskeligst av alle: store felt av nesten lik mørk
+himmel. Et barn som sitter med tjue nesten identiske brikker gir opp.
+
+Svaret er strukturelt, ikke kunstnerisk. `strOverAlt()` går gjennom et
+rutenett over HELE flaten og tegner noe i hver eneste celle. Ingen celle kan
+bli tom, og ingen brikke kan bli uten et kjennemerke. De seks nye scenene er
+bygget rundt den regelen i stedet for å håpe på den:
+
+- **Rommet** – én klode i hver celle i et 5×4-rutenett, alle ulike, mot
+  fargede tåkefelt. Samme tema som Rakett, 32 prosentpoeng lettere å pusle.
+- **Under vann** – fisk i hver celle, tare, koraller, sjøstjerner, lysstråler.
+- **Blomstereng** – store blomster i seks farger, bier, sommerfugler, marihøner.
+- **Bondegård** – ku, gris, sau og høne spredt over hele jordet, med låve,
+  vindmølle og luftballong.
+- **Jungel** – blader i fem grønnfarger overalt, med ape og papegøye.
+- **Byen** – en husrekke der hvert hus har sin egen farge, takform og
+  vindusmønster.
+
+To av dem lå først på 79 og 84 %. Begge hadde samme feil: for mye tom himmel,
+fordi de delte kulissene legger horisonten to tredjedeler ned. Med egen,
+høyere horisont og noe stort i lufta kom de til 91 og 94 %.
 
 De figurative scenene tegnes med kode i designrommet 1600 × 1067 og skaleres
 til faktisk bildestørrelse. Alt varierer med seed: farger, positur, speiling,
-antall skyer, hvor treet står. Hver scene tar 8–30 ms å tegne.
-
-Scenene er komponert for å kunne pusles. Ingen store flate felt: himmelen har
-gradient, skyer og fugler, bakken har gress, blomster og steiner, og figurene
-har flekker, striper eller paneler. Romscenen er den vanskeligste – mørke
-hjørner er vanskelig å unngå uten å ødelegge romfølelsen.
-
-### Tre valg som styrer resten
-
-**Alt utledes av en seed.** Brikkeformer, motiv og utlegg kommer fra
-`(motiv, antall, seed)`. Det gir «dagens puslespill» uten server, og gjør
-deling via lenke triviell senere.
-
-**Brikkene tegnes én gang.** Hver brikke bakes inn i et atlas med skygge og
-bevel ferdig påført. Under spilling er hver brikke bare én `drawImage`.
-Alternativet — clipping og `shadowBlur` per frame — er forskjellen på 60 fps
-og 12 fps på iPad.
-
-**Motivene måles.** Generatoren regner ut lokal kontrast i et grovt rutenett
-og legger til landemerker der bildet er for flatt. Flate felt er den vanligste
-grunnen til at bildebaserte puslespill er kjedelige å pusle.
-
-### iPad-hensyn som er bygget inn
-
-- Alle canvas deler ~256 MB i WebKit, og minnet lekker ved gjentatt resize.
-  Canvaset endres derfor aldri i størrelse uten at målene faktisk er ulike,
-  resize er debounced, og atlaset frigjøres eksplisitt ved bytte av puslespill.
-- Atlaset allokerer nøyaktig den høyden det trenger, ikke fulle sider.
-- DPR kappes på 2.
-- `touch-action: none` og `preventDefault` på `touchstart` — uten det
-  panorerer Safari siden i stedet for brettet.
-- `setPointerCapture` på hver peker, så dragging ikke mister kontakten.
+antall skyer, hvor treet står. Hver scene tar 6–14 ms å tegne.
 
 ## Målt ytelse
 

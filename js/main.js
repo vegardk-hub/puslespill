@@ -854,8 +854,16 @@ const STARTANTALL = [
   { n: 500, ord: 'Verst som finnes' },
 ];
 
-/** Rekkefølgen bildene vises i. Figurene først – de er for barna. */
-const STARTMOTIV = ['dinosaur', 'hus', 'bil', 'rakett', 'bat', 'katt', 'neon'];
+/**
+ * Rekkefølgen bildene vises i.
+ * De som er lettest å pusle står først. Scenene med mange ting spredt over
+ * hele flaten er de som holder når brikketallet stiger; de med én stor figur
+ * mot en rolig bakgrunn hører hjemme på de små brikketallene.
+ */
+const STARTMOTIV = [
+  'bondegard', 'undervann', 'eng', 'rommet', 'jungel', 'byen',
+  'dinosaur', 'hus', 'bil', 'katt', 'bat', 'rakett', 'neon',
+];
 
 const miniatyrer = new Map();
 let startKlar = false;

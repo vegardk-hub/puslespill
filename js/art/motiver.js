@@ -7,7 +7,8 @@
 import { makeRng } from '../core/rng.js';
 import { genererNeon } from './neon.js';
 import { genererEget, harEgetBilde } from './eget.js';
-import { SCENER, genererScene } from './scener.js';
+import { SCENER, tegnScene } from './scener.js';
+import { BARNESCENER } from './scener-barn.js';
 import { malPuslbarhet } from './tegning.js';
 
 export const MOTIVER = {
@@ -19,11 +20,13 @@ export const MOTIVER = {
   },
 };
 
-for (const [nokkel, scene] of Object.entries(SCENER)) {
+// Scenene bor i to filer: de opprinnelige figurene, og de som er laget
+// med barn og puslbarhet for oye. Registeret bryr seg ikke om hvilken.
+for (const [nokkel, scene] of Object.entries({ ...SCENER, ...BARNESCENER })) {
   MOTIVER[nokkel] = {
     navn: scene.navn,
     gruppe: 'Figurer',
-    generer: (b, h, seed) => genererScene(nokkel, b, h, seed),
+    generer: (b, h, seed) => tegnScene(scene, b, h, seed),
   };
 }
 

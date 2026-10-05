@@ -15,14 +15,14 @@ import {
   bezierPunkter, taperetBane, stjerne, mal, strek, loddrettGradient,
 } from './tegning.js';
 
-const KONTUR = hsl(224, 45, 16);
-const HORISONT = 700;
+export const KONTUR = hsl(224, 45, 16);
+export const HORISONT = 700;
 
 // ===========================================================================
 // Felles kulisser
 // ===========================================================================
 
-function himmel(ctx, rng, { topp = 205, bunn = 194 } = {}) {
+export function himmel(ctx, rng, { topp = 205, bunn = 194 } = {}) {
   ctx.fillStyle = loddrettGradient(ctx, 0, HORISONT + 60, [
     [0, hsl(topp, 78, 62)],
     [0.55, hsl(topp - 6, 80, 76)],
@@ -31,7 +31,7 @@ function himmel(ctx, rng, { topp = 205, bunn = 194 } = {}) {
   ctx.fillRect(0, 0, DESIGN_B, HORISONT + 60);
 }
 
-function sol(ctx, x, y, r, hue = 48) {
+export function sol(ctx, x, y, r, hue = 48) {
   const g = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 3.2);
   g.addColorStop(0, hsl(hue, 100, 75, 0.55));
   g.addColorStop(1, hsl(hue, 100, 75, 0));
@@ -41,7 +41,7 @@ function sol(ctx, x, y, r, hue = 48) {
   mal(ctx, sirkel(x - r * 0.28, y - r * 0.3, r * 0.42), { fyll: hsl(hue + 8, 100, 82, 0.75) });
 }
 
-function sky(ctx, x, y, s, rng) {
+export function sky(ctx, x, y, s, rng) {
   const p = new Path2D();
   const bobler = [
     [0, 0, 1], [-0.72, 0.18, 0.72], [0.74, 0.2, 0.68],
@@ -56,18 +56,18 @@ function sky(ctx, x, y, s, rng) {
     { fyll: hsl(210, 45, 90, 0.85) });
 }
 
-function skyer(ctx, rng, antall = 3) {
+export function skyer(ctx, rng, antall = 3) {
   for (let i = 0; i < antall; i++) {
     sky(ctx, rng.range(120, DESIGN_B - 120), rng.range(90, 330), rng.range(46, 84), rng);
   }
 }
 
-function fugl(ctx, x, y, s, farge = KONTUR) {
+export function fugl(ctx, x, y, s, farge = KONTUR) {
   strek(ctx, [[x - s, y], [x - s * 0.45, y - s * 0.55], [x, y - s * 0.05]], farge, s * 0.22);
   strek(ctx, [[x, y - s * 0.05], [x + s * 0.45, y - s * 0.6], [x + s, y - s * 0.05]], farge, s * 0.22);
 }
 
-function fugler(ctx, rng, antall = 3) {
+export function fugler(ctx, rng, antall = 3) {
   for (let i = 0; i < antall; i++) {
     fugl(ctx, rng.range(150, DESIGN_B - 150), rng.range(120, 300), rng.range(16, 30),
       hsl(224, 40, 34, 0.8));
@@ -75,7 +75,7 @@ function fugler(ctx, rng, antall = 3) {
 }
 
 /** Åser bak horisonten – gir dybde og bryter opp himmelen. */
-function aser(ctx, rng, hue = 128) {
+export function aser(ctx, rng, hue = 128) {
   for (const [dy, lys, spenn] of [[-120, 42, 1.25], [-64, 34, 0.95]]) {
     const p = new Path2D();
     p.moveTo(-50, HORISONT + 10);
@@ -91,7 +91,7 @@ function aser(ctx, rng, hue = 128) {
   }
 }
 
-function bakke(ctx, rng, hue = 108) {
+export function bakke(ctx, rng, hue = 108) {
   ctx.fillStyle = loddrettGradient(ctx, HORISONT - 10, DESIGN_H, [
     [0, hsl(hue, 52, 46)],
     [1, hsl(hue + 8, 58, 30)],
@@ -112,14 +112,14 @@ function bakke(ctx, rng, hue = 108) {
   }
 }
 
-function gresstust(ctx, x, y, s, hue = 108) {
+export function gresstust(ctx, x, y, s, hue = 108) {
   for (const d of [-1, -0.35, 0.35, 1]) {
     strek(ctx, [[x + d * s * 0.3, y], [x + d * s * 0.75, y - s * (0.85 - Math.abs(d) * 0.22)]],
       hsl(hue, 58, 34), s * 0.16);
   }
 }
 
-function blomst(ctx, x, y, s, hue) {
+export function blomst(ctx, x, y, s, hue) {
   strek(ctx, [[x, y], [x, y - s * 1.5]], hsl(112, 55, 34), s * 0.22);
   const midt = y - s * 1.5;
   for (let i = 0; i < 5; i++) {
@@ -130,7 +130,7 @@ function blomst(ctx, x, y, s, hue) {
   mal(ctx, sirkel(x, midt, s * 0.4), { fyll: hsl(48, 95, 66), strek: hsl(40, 80, 48), bredde: 3 });
 }
 
-function markdetaljer(ctx, rng, { tuster = 26, blomster = 12, steiner = 8, hue = 108 } = {}) {
+export function markdetaljer(ctx, rng, { tuster = 26, blomster = 12, steiner = 8, hue = 108 } = {}) {
   for (let i = 0; i < tuster; i++) {
     gresstust(ctx, rng.range(0, DESIGN_B), rng.range(HORISONT + 10, DESIGN_H - 10),
       rng.range(26, 54), hue);
@@ -147,7 +147,7 @@ function markdetaljer(ctx, rng, { tuster = 26, blomster = 12, steiner = 8, hue =
   }
 }
 
-function lovtre(ctx, x, bunnY, h, rng, hue = 132) {
+export function lovtre(ctx, x, bunnY, h, rng, hue = 132) {
   const stamme = taperetBane(
     bezierPunkter([x, bunnY], [x - 8, bunnY - h * 0.3], [x + 10, bunnY - h * 0.5], [x, bunnY - h * 0.62], 24),
     (t) => h * (0.115 - t * 0.05));
@@ -812,10 +812,13 @@ export const SCENER = {
   katt: { navn: 'Katt', tegn: sceneKatt },
 };
 
-/** Tegner en scene i designrommet og skalerer til ønsket bildestørrelse. */
-export function genererScene(nokkel, bredde, hoyde, seed) {
-  const scene = SCENER[nokkel];
-  if (!scene) throw new Error('Ukjent scene: ' + nokkel);
+/**
+ * Tegner en scene i designrommet og skalerer til ønsket bildestørrelse.
+ * Tar imot selve scenen, ikke en nøkkel, så scenene kan bo i flere filer
+ * uten at noen av dem trenger å kjenne de andre.
+ */
+export function tegnScene(scene, bredde, hoyde, seed) {
+  if (!scene) throw new Error('Ukjent scene');
   const rng = makeRng(seed);
 
   const canvas = document.createElement('canvas');
@@ -828,5 +831,5 @@ export function genererScene(nokkel, bredde, hoyde, seed) {
   scene.tegn(ctx, rng);
   ctx.restore();
 
-  return { canvas, meta: { stil: nokkel, navn: scene.navn, seed } };
+  return { canvas, meta: { stil: scene.navn, navn: scene.navn, seed } };
 }
