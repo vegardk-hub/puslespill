@@ -322,46 +322,57 @@ over hele flaten – snitt av fem seeds:
 | Motiv | Puslbarhet | |
 |---|---:|---|
 | Neon | 100 % | abstrakt |
+| **Under vann** | **97 %** | ny |
 | **Rommet** | **96 %** | ny |
-| **Under vann** | **95 %** | ny |
-| **Blomstereng** | **94 %** | ny |
-| **Bondegård** | **91 %** | ny |
-| **Jungel** | **86 %** | ny |
-| **Byen** | **86 %** | ny |
-| Bil | 82 % | |
-| Hus | 80 % | |
-| Dinosaur | 74 % | |
-| Katt | 73 % | |
-| Seilbåt | 68 % | |
-| Rakett | 64 % | |
+| **Byen** | **92 %** | ny |
+| **Blomstereng** | **92 %** | ny |
+| **Jungel** | **91 %** | ny |
+| **Bondegård** | **87 %** | ny |
+| Hus | 82 % | |
+| Bil | 81 % | |
+| Katt | 74 % | |
+| Dinosaur | 73 % | |
+| Seilbåt | 69 % | |
+| Rakett | 67 % | |
 
-### Hvorfor de nye er lettere å pusle
+### To krav som trekker mot hverandre
 
 Rakett er kult, men var vanskeligst av alle: store felt av nesten lik mørk
-himmel. Et barn som sitter med tjue nesten identiske brikker gir opp.
+himmel. Et barn med tjue nesten identiske brikker gir opp. Så scenene må
+være travle.
 
-Svaret er strukturelt, ikke kunstnerisk. `strOverAlt()` går gjennom et
-rutenett over HELE flaten og tegner noe i hver eneste celle. Ingen celle kan
-bli tom, og ingen brikke kan bli uten et kjennemerke. De seks nye scenene er
-bygget rundt den regelen i stedet for å håpe på den:
+Men travle scener blir fort rot: blomster oppå kua, blader oppå apen,
+blomster oppå blomster. Da er bildet fullt uten å være lesbart.
 
-- **Rommet** – én klode i hver celle i et 5×4-rutenett, alle ulike, mot
-  fargede tåkefelt. Samme tema som Rakett, 32 prosentpoeng lettere å pusle.
-- **Under vann** – fisk i hver celle, tare, koraller, sjøstjerner, lysstråler.
-- **Blomstereng** – store blomster i seks farger, bier, sommerfugler, marihøner.
-- **Bondegård** – ku, gris, sau og høne spredt over hele jordet, med låve,
-  vindmølle og luftballong.
-- **Jungel** – blader i fem grønnfarger overalt, med ape og papegøye.
-- **Byen** – en husrekke der hvert hus har sin egen farge, takform og
-  vindusmønster.
+Løsningen er todelt, og begge halvdeler trengs:
 
-To av dem lå først på 79 og 84 %. Begge hadde samme feil: for mye tom himmel,
-fordi de delte kulissene legger horisonten to tredjedeler ned. Med egen,
-høyere horisont og noe stort i lufta kom de til 91 og 94 %.
+**`fordel()`** går gjennom et rutenett over hele flaten og finner en *ledig*
+plass i hver celle. Alt deler ett opptattkart, så ingenting havner oppå noe
+annet. Får noe ikke plass, prøves en mindre utgave før cellen gis opp – et
+tomt hjørne er verre enn en litt mindre blomst.
+
+**To slags krav på plassen.** Figurene – kua, apen, blomsten – krever full
+klaring. Pynt kan derimot overlappe *annen pynt* med rundt halvparten; blader
+som ligger litt over hverandre ser ut som løv, ikke som rot.
+
+Tegningen skjer etterpå, sortert: først bakgrunnspynt, så figurer, og
+innenfor hvert lag nedenfra og opp, slik at det som står nærmest også står
+foran.
+
+### Målingen fanget begge feilene
+
+Første forsøk strødde ting i rutenett som ikke visste om hverandre, og tegnet
+pynten etter figurene. Travelt nok, men rotete.
+
+Andre forsøk nektet all overlapping. Nå ble det ryddig – men hullene etter
+avviste celler ga store, like felt igjen. **Jungel falt fra 86 til 59 %**, og
+Rommet fra 96 til 75 %.
+
+Tredje forsøk, med myk overlapping for pynt og måner som fyller hullene
+mellom klodene, ga både ryddighet og 87–97 %.
 
 De figurative scenene tegnes med kode i designrommet 1600 × 1067 og skaleres
-til faktisk bildestørrelse. Alt varierer med seed: farger, positur, speiling,
-antall skyer, hvor treet står. Hver scene tar 6–14 ms å tegne.
+til faktisk bildestørrelse. Alt varierer med seed. Hver scene tar 4–9 ms.
 
 ## Målt ytelse
 
