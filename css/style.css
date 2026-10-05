@@ -943,8 +943,16 @@ input[type="range"] {
 
 .hint-kort strong { color: #fff; }
 
+.hint-knapper {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .hint-kort button {
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 16px;
   font-size: 14px;
 }
+
+.hint-kort button[hidden] { display: none; }

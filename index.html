@@ -45,11 +45,12 @@
     <h1 class="start-tittel">Puslespill</h1>
 
     <div id="heltskjerm-hint" class="hint-kort" hidden>
-      <b>Vil du ha hele skjermen?</b>
-      <p>Trykk <strong>Del</strong>-knappen i Safari og velg
-         <strong>«Legg til på Hjem-skjerm»</strong>. Da starter puslespillet
-         som en egen app, uten nettleseren rundt – og brettet blir større.</p>
-      <button id="heltskjerm-lukk">Skjønner</button>
+      <b id="hint-tittel">Vil du ha hele skjermen?</b>
+      <p id="hint-tekst"></p>
+      <div class="hint-knapper">
+        <button id="hint-installer" class="primar" hidden>Installer appen</button>
+        <button id="heltskjerm-lukk">Skjønner</button>
+      </div>
     </div>
 
     <button id="fortsett" class="fortsettknapp" hidden>

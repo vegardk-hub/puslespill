@@ -7,19 +7,26 @@ Motivene genereres i appen, eller du bruker dine egne bilder.
 brikkene lar seg finne, du kan bruke dine egne bilder, vanskelighetsgraden
 går fra barnehage til beinhard, og alt overlever at appen lukkes.
 
-## Full skjerm på iPad
+## Full skjerm
 
-Åpner du lenken i Safari, blir Safaris eget grensesnitt liggende rundt
-brettet. Ingen nettside kan skjule det – iOS gir ikke lov.
+Appen er bygget for å kjøre uten nettleser rundt: manifest med
+`display: standalone`, `apple-mobile-web-app-capable`, og `viewport-fit=cover`
+med safe-area-innrykk så innholdet går helt ut i kantene uten å havne under
+statuslinja.
 
-Det som virker er **Del-knappen → «Legg til på Hjem-skjerm»**. Da starter
-appen i standalone, Safari forsvinner helt, og brettet får hele skjermen.
-Manifestet og `apple-mobile-web-app-capable` er satt opp for nettopp det, og
-`viewport-fit=cover` med safe-area-innrykk gjør at innholdet går helt ut i
-kantene uten å havne under statuslinja.
+Men nettleserne kommer dit på tre helt ulike måter, så startskjermen sier
+tre ulike ting:
 
-Appen viser et lite hint om dette på startskjermen, men bare når den faktisk
-kjører i en nettleser. Starter den fra hjemskjermen, sier den ingenting.
+| Nettleser | Hva appen gjør |
+|---|---|
+| **Chrome, Edge** | Viser en ekte **«Installer appen»**-knapp, drevet av `beforeinstallprompt`. Ett trykk. |
+| **Safari på iOS** | Forklarer **Del → «Legg til på Hjem-skjerm»**. Det finnes ingen knapp å trykke på – iOS lar ingen nettside skjule Safari. |
+| **Chrome på iOS** | Sier rett ut at man må åpne lenken i Safari. På iPad er det bare Safari som kan legge en app på hjemskjermen, og da er det ærligere å si fra enn å gi en oppskrift som ikke finnes. |
+| **Andre** | Peker på nettlesermenyen. |
+
+Hintet vises bare når appen faktisk kjører i en nettleser. Starter den fra
+hjemskjermen, sier den ingenting. Takker man nei til Chromes
+installasjonsdialog, faller kortet tilbake til bruksanvisningen.
 
 ## Kjøre lokalt
 

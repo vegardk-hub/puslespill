@@ -921,15 +921,91 @@ function merkStartvalg() {
 /**
  * Hintet om full skjerm.
  *
- * iOS lar ingen nettside skjule Safari-grensesnittet. Det eneste som virker
- * er «Legg til på Hjem-skjerm» - da starter appen i standalone og nettleseren
- * forsvinner helt. Derfor sier vi det, men bare til den som trenger det.
+ * Nettleserne gjør dette på tre helt ulike måter, så appen må si tre ulike
+ * ting:
+ *
+ *   Chrome og Edge  kan installere appen med ett trykk. Da viser vi en ekte
+ *                   knapp i stedet for en bruksanvisning.
+ *   Safari på iOS   har ingen slik knapp, og ingen nettside får lov til å
+ *                   skjule Safaris grensesnitt. Det eneste som virker er
+ *                   Del-knappen og «Legg til på Hjem-skjerm».
+ *   Chrome på iOS   kan ikke installere i det hele tatt – Apple lar bare
+ *                   Safari gjøre det. Da er det ærligere å si fra enn å gi
+ *                   en oppskrift som ikke finnes.
  */
+let installLofte = null;
+
 function erEgenApp() {
   return window.matchMedia('(display-mode: standalone)').matches ||
          window.matchMedia('(display-mode: fullscreen)').matches ||
          window.navigator.standalone === true;
 }
+
+/** Chrome og Edge tilbyr installasjon selv. Vi tar imot tilbudet og venter. */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installLofte = e;
+  oppdaterHeltskjermHint();
+});
+
+window.addEventListener('appinstalled', () => {
+  installLofte = null;
+  $('#heltskjerm-hint').hidden = true;
+  skjulHintForGodt();
+});
+
+function skjulHintForGodt() {
+  try {
+    localStorage.setItem('puslespill-hint-skjult', '1');
+  } catch {
+    /* ikke viktig nok til å bry seg */
+  }
+}
+
+function nettlesersituasjon() {
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // På iOS er alle nettlesere WebKit under panseret, men bare Safari får
+  // lov til å legge noe på hjemskjermen.
+  const annenPaIos = iOS && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  if (installLofte) return 'installer';
+  if (annenPaIos) return 'ios-annen';
+  if (iOS) return 'ios-safari';
+  return 'meny';
+}
+
+const HINT = {
+  installer: {
+    tittel: 'Vil du ha hele skjermen?',
+    tekst: 'Installer puslespillet som en egen app. Da starter det uten ' +
+           'nettleseren rundt, og brettet får hele skjermen.',
+    knapp: true,
+  },
+  'ios-safari': {
+    tittel: 'Vil du ha hele skjermen?',
+    tekst: 'Trykk <strong>Del</strong>-knappen i Safari og velg ' +
+           '<strong>«Legg til på Hjem-skjerm»</strong>. Da starter ' +
+           'puslespillet som en egen app, uten nettleseren rundt – og ' +
+           'brettet blir større.',
+    knapp: false,
+  },
+  'ios-annen': {
+    tittel: 'Åpne i Safari for hele skjermen',
+    tekst: 'På iPad er det bare Safari som kan legge en app på hjemskjermen. ' +
+           'Åpner du denne lenken i Safari, kan du velge ' +
+           '<strong>Del → «Legg til på Hjem-skjerm»</strong>, og da får ' +
+           'puslespillet hele skjermen.',
+    knapp: false,
+  },
+  meny: {
+    tittel: 'Vil du ha hele skjermen?',
+    tekst: 'Åpne nettlesermenyen og velg <strong>«Installer app»</strong> ' +
+           'eller <strong>«Legg til på startskjerm»</strong>. Da starter ' +
+           'puslespillet uten nettleseren rundt.',
+    knapp: false,
+  },
+};
 
 function oppdaterHeltskjermHint() {
   let avvist = false;
@@ -938,16 +1014,39 @@ function oppdaterHeltskjermHint() {
   } catch {
     // Blokkert lagring. Da viser vi hintet; det er bare en liten plage.
   }
-  $('#heltskjerm-hint').hidden = erEgenApp() || avvist;
+  const kort = $('#heltskjerm-hint');
+  if (erEgenApp() || avvist) {
+    kort.hidden = true;
+    return;
+  }
+  const h = HINT[nettlesersituasjon()];
+  $('#hint-tittel').textContent = h.tittel;
+  $('#hint-tekst').innerHTML = h.tekst;
+  $('#hint-installer').hidden = !h.knapp;
+  kort.hidden = false;
 }
+
+$('#hint-installer').addEventListener('click', async () => {
+  if (!installLofte) return;
+  const lofte = installLofte;
+  installLofte = null;
+  try {
+    await lofte.prompt();
+    const svar = await lofte.userChoice;
+    if (svar.outcome === 'accepted') {
+      $('#heltskjerm-hint').hidden = true;
+      skjulHintForGodt();
+    } else {
+      oppdaterHeltskjermHint();   // takket nei: fall tilbake til bruksanvisning
+    }
+  } catch {
+    oppdaterHeltskjermHint();
+  }
+});
 
 $('#heltskjerm-lukk').addEventListener('click', () => {
   $('#heltskjerm-hint').hidden = true;
-  try {
-    localStorage.setItem('puslespill-hint-skjult', '1');
-  } catch {
-    /* ikke viktig nok til a bry seg */
-  }
+  skjulHintForGodt();
 });
 
 function visStart() {
