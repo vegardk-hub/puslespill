@@ -21,8 +21,9 @@
 
 <!-- Topplinja er alt man trenger mens man pusler. Resten bor i menyen. -->
 <header id="topplinje">
-  <button id="menyknapp" class="ikonknapp" aria-label="Åpne innstillinger" aria-expanded="false">
-    <span class="hamburger"></span>
+  <!-- Tilbake står først og har tekst. Et husikon sier ingenting til et barn. -->
+  <button id="hjemknapp" class="tilbakeknapp" aria-label="Tilbake til startskjermen">
+    <span class="pil" aria-hidden="true"></span>Tilbake
   </button>
 
   <div class="fremdriftsfelt">
@@ -31,10 +32,12 @@
   </div>
 
   <div class="snarveier">
-    <button id="hjemknapp" title="Tilbake til startskjermen" aria-label="Tilbake til startskjermen">&#8962;</button>
     <button id="rydd" title="Legg løse brikker i rutenett">Rydd</button>
     <button id="skuffknapp" aria-pressed="true" title="Vis eller skjul brikkeskuffen">Skuff</button>
     <button id="bildeknapp" aria-pressed="false" title="Vis motivet i hjørnet">Bilde</button>
+    <button id="menyknapp" class="ikonknapp" aria-label="Åpne innstillinger" aria-expanded="false">
+      <span class="hamburger"></span>
+    </button>
   </div>
 </header>
 

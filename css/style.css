@@ -191,6 +191,30 @@ input[type="range"] {
 .snarveier { display: flex; gap: 6px; }
 .snarveier button { padding: 0 12px; font-size: 14px; }
 
+/* Tilbakeknappen skal være den tydeligste knappen i linja. Den er veien ut
+ * av puslespillet, og den eneste et barn trenger å finne i en fei. */
+.tilbakeknapp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0 18px 0 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(34, 224, 255, 0.16);
+  border-color: rgba(34, 224, 255, 0.55);
+  box-shadow: 0 0 16px rgba(34, 224, 255, 0.22);
+}
+
+.tilbakeknapp .pil {
+  width: 10px;
+  height: 10px;
+  border-left: 2.5px solid currentColor;
+  border-bottom: 2.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
 /* --- Meny --- */
 
 #menyskygge {
@@ -716,9 +740,15 @@ input[type="range"] {
 }
 
 /* Smal skjerm: la topplinja gi fra seg det som ikke er livsviktig. */
-@media (max-width: 560px) {
+@media (max-width: 620px) {
   .spillstatus { font-size: 12px; }
   #bildeknapp { display: none; }
+}
+
+/* Helt smal skjerm: la snarveiene gå før tilbakeknappen gjør det. */
+@media (max-width: 480px) {
+  #rydd { display: none; }
+  .tilbakeknapp { padding: 0 14px 0 12px; font-size: 15px; }
 }
 
 /* --- Startskjermen ---------------------------------------------------------

@@ -138,18 +138,46 @@ function laLasteskjermenVises() {
   });
 }
 
+/**
+ * Tegner motivet, med en vei ut hvis det ikke lar seg tegne.
+ *
+ * Det vanlige tilfellet er et eget bilde som er slettet mens innstillingen
+ * fortsatt sier «eget». Før kastet det en feil midt i byggingen, og appen
+ * ble stående bak lasteskjermen for alltid.
+ */
+function hentMotiv(mal) {
+  const palett = tilstand.palett === 'auto' ? undefined : tilstand.palett;
+  try {
+    return genererMotiv(tilstand.motiv, mal.bredde, mal.hoyde, tilstand.seed + ':motiv', { palett });
+  } catch {
+    tilstand.motiv = 'tilfeldig';
+    tilstand.bildeId = null;
+    byggMotivvelger();
+    oppdaterPalettTilgang();
+    startKlar = false;
+    return genererMotiv('tilfeldig', mal.bredde, mal.hoyde, tilstand.seed + ':motiv');
+  }
+}
+
 async function byggNytt({ nyttMotiv = true, stilling = null } = {}) {
   $('#laster').hidden = false;
   $('#laster-tekst').textContent = nyttMotiv ? 'Tegner motiv …' : 'Kutter brikker …';
   $('#ferdig').hidden = true;
   await laLasteskjermenVises();
+  try {
+    await byggInnmat({ nyttMotiv, stilling });
+  } finally {
+    // Uansett hva som skjedde: ingen skal bli stående bak lasteskjermen.
+    $('#laster').hidden = true;
+  }
+}
 
+async function byggInnmat({ nyttMotiv, stilling }) {
   const t0 = performance.now();
   const mal = velgBildestorrelse(tilstand.onsketAntall, tilstand.sideforhold);
 
   if (nyttMotiv || !motiv || motiv.canvas.width !== mal.bredde || motiv.canvas.height !== mal.hoyde) {
-    const palett = tilstand.palett === 'auto' ? undefined : tilstand.palett;
-    motiv = genererMotiv(tilstand.motiv, mal.bredde, mal.hoyde, tilstand.seed + ':motiv', { palett });
+    motiv = hentMotiv(mal);
   }
   const tMotiv = performance.now() - t0;
 
@@ -183,7 +211,6 @@ async function byggNytt({ nyttMotiv = true, stilling = null } = {}) {
   tegnForhandsvisning();
   oppdaterSkuff();
   oppdaterSpillstatus();
-  $('#laster').hidden = true;
   if (!gjenoppretter) lagreSnart();
 }
 
@@ -1250,6 +1277,14 @@ async function gjenopprett({ byggOgsa = false } = {}) {
     mineBilder = bilder;
     fullforte = ferdige;
     brukInnstillinger(valg);
+    // Et lagret valg kan peke på et bilde som siden er slettet.
+    if (tilstand.motiv === 'eget' && !hentAktivtBilde()) {
+      const sisteBilde = okt?.oppskrift?.bildeId && bilder.some((b) => b.id === okt.oppskrift.bildeId);
+      if (!sisteBilde) {
+        tilstand.motiv = 'tilfeldig';
+        tilstand.bildeId = null;
+      }
+    }
 
     if (byggOgsa && okt && okt.oppskrift) {
       const o = okt.oppskrift;
@@ -1546,6 +1581,11 @@ $('#minebilder-liste').addEventListener('click', async (e) => {
     await lagring.slettBilde(slett.dataset.slett).catch(() => {});
     if (tilstand.bildeId === slett.dataset.slett) {
       tilstand.bildeId = null;
+      if (tilstand.motiv === 'eget') {
+        tilstand.motiv = 'tilfeldig';
+        byggMotivvelger();
+        oppdaterPalettTilgang();
+      }
       await lagring.slettSpill().catch(() => {});
     }
     mineBilder = await lagring.hentBilder().catch(() => mineBilder);

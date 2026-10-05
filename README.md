@@ -99,9 +99,16 @@ på den.
 
 ### Mens man pusler
 
-Topplinja holder det man trenger: fremdrift, klokke, og fire snarveier
-(Hjem, Rydd, Skuff, Bilde). Alt oppsett bor i en meny som skyves inn fra
-siden.
+Topplinja holder det man trenger: **«← Tilbake»** helt til venstre, så
+fremdrift og klokke, og til høyre snarveiene (Rydd, Skuff, Bilde) med menyen
+sist.
+
+Tilbakeknappen var først et lite husikon helt til høyre, og det sa ingenting
+til et barn. Nå er den den tydeligste knappen i linja, med pil og tekst, og
+den står der tilbakeknapper hører hjemme. Spillet lagres før man går, så
+«Fortsett der du slapp» venter på startskjermen.
+
+Alt oppsett bor i en meny som skyves inn fra siden.
 
 Det var ikke slik i starten. Panelet vokste for hver fase til det dekket
 omtrent 70 % av skjermen – på en app hvis hele poeng er at bordet skal være
