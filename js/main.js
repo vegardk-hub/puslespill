@@ -1521,9 +1521,47 @@ async function velgLagret(post, opts = {}) {
   }
 }
 
+/**
+ * Sletter alle egne bilder. Krever to trykk.
+ * Dette er bildene av familien – de skal ikke kunne forsvinne på et uhell,
+ * men det skal heller ikke være vanskelig å bli kvitt dem.
+ */
+let slettBekreftes = 0;
+
+$('#slettalle').addEventListener('click', async () => {
+  const knapp = $('#slettalle');
+  if (Date.now() - slettBekreftes > 4000) {
+    slettBekreftes = Date.now();
+    knapp.classList.add('bekreft');
+    knapp.textContent = 'Trykk en gang til for å slette';
+    setTimeout(() => {
+      if (Date.now() - slettBekreftes >= 4000) {
+        knapp.classList.remove('bekreft');
+        knapp.textContent = 'Slett alle bildene';
+      }
+    }, 4200);
+    return;
+  }
+  slettBekreftes = 0;
+  knapp.classList.remove('bekreft');
+  knapp.textContent = 'Slett alle bildene';
+  for (const b of mineBilder) await lagring.slettBilde(b.id).catch(() => {});
+  mineBilder = [];
+  if (tilstand.motiv === 'eget') {
+    tilstand.motiv = 'tilfeldig';
+    tilstand.bildeId = null;
+    byggMotivvelger();
+    oppdaterPalettTilgang();
+  }
+  await lagring.slettSpill().catch(() => {});
+  oppdaterMineBilder();
+  byggStartmotiv();
+});
+
 function oppdaterMineBilder() {
   const rad = $('#minebilder');
   rad.hidden = mineBilder.length === 0;
+  $('#slettalle-rad').hidden = mineBilder.length === 0;
   const aktiv = hentAktivtBilde();
   $('#minebilder-liste').innerHTML = mineBilder.map((b) => `
     <button class="bildekort${aktiv && aktiv.id === b.id ? ' aktiv' : ''}" data-bilde="${b.id}"

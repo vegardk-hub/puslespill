@@ -986,3 +986,28 @@ input[type="range"] {
 }
 
 .hint-kort button[hidden] { display: none; }
+
+/* --- Personvern --- */
+.personvern {
+  margin: 8px 0 4px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--dempet);
+}
+
+#slettalle-rad[hidden] { display: none; }
+
+#slettalle {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  color: #ff8a9c;
+  background: none;
+  border-color: rgba(255, 120, 150, 0.4);
+}
+
+#slettalle.bekreft {
+  color: #fff;
+  background: rgba(226, 60, 78, 0.3);
+  border-color: #ff8a9c;
+}

@@ -311,8 +311,24 @@ beskjærer. Under 45 % kommer en advarsel, under 30 % en tydeligere en. Et
 bilde av snø og himmel gir 20 % – og da er det bedre å vite det før man har
 lagt 200 brikker.
 
-**Bildene forlater aldri iPaden.** De lagres som blober i IndexedDB. Appen
-har ingen server å sende dem til.
+### Bildene forlater aldri iPaden
+
+De lagres som blober i IndexedDB, i appens eget lager på enheten. Veien er:
+filvelger → lerret → `toBlob()` → IndexedDB. Det er hele reisen.
+
+Dette er etterprøvd, ikke bare påstått:
+
+- **Hele kodebasen inneholder to `fetch`-kall**, begge i service workeren, og
+  begge henter kun appens egne filer. Ingen `XMLHttpRequest`, `sendBeacon`,
+  `FormData`, `WebSocket` eller skjema som sendes.
+- **Målt på den publiserte siden:** med `fetch`, `XMLHttpRequest.send` og
+  `navigator.sendBeacon` avlyttet, ga det å legge inn et bilde og bygge et
+  puslespill av det **null nettverkskall av noe slag**. Ikke engang en GET.
+- **GitHub Pages er statisk.** Det finnes ikke noe endepunkt å laste opp til.
+  Repoet inneholder tre bildefiler, alle genererte appikoner.
+
+Menyen sier det samme til den som bruker appen, og har en
+**«Slett alle bildene»** som krever to trykk.
 
 ## Motiv
 
